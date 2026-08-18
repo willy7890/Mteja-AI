@@ -1,0 +1,8 @@
+# Dockerfile for MTEJA AI React frontend
+# Multi-stage build: install deps, build, serve with nginx or vite preview
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ .
+RUN npm run build
