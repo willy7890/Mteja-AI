@@ -89,9 +89,15 @@ uvicorn app.main:app --reload --port 8000
 cd frontend
 npm install
 npm run dev
+
+- Frontend → http://localhost:5173  
+- Backend API → http://localhost:8000  
+- API Docs → http://localhost:8000/docs  
+
 '''
-###How to push to github
-'''# Initialize git
+
+### How to push to github
+# Initialize git
 git init
 
 # Add all files
@@ -104,15 +110,25 @@ git commit -m "Initial commit - MTEJA AI"
 git branch -M main
 
 # Connect to your GitHub repository
-git remote add origin https://github.com/willy7890/mteja-ai.git
+git remote add origin https://github.com/willy7890/Mteja-AI.git
 
 # Push the code
 git push -u origin main
 '''
+# 1. Always start from the latest develop
+git checkout develop
+git pull origin develop
 
-- Frontend → http://localhost:5173  
-- Backend API → http://localhost:8000  
-- API Docs → http://localhost:8000/docs  
+# 2. Create your own feature branch from develop
+git checkout -b feature/your-name-feature
+
+# 3. Work on your code...
+# then commit
+git add .
+git commit -m "Your message"
+
+# 4. Push your feature branch
+git push -u origin feature/your-name-feature
 
 ---
 
