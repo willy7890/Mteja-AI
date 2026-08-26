@@ -75,7 +75,7 @@ def _call_live(history_text: str) -> dict | None:
 _PRICE_WORDS = ["price", "discount", "cheap", "expensive", "cost", "negotiate", "bei", "punguza"]
 _COMPLAINT_WORDS = ["refund", "complain", "terrible", "bad service", "money back", "angry", "disappointed"]
 _GREETING_WORDS = ["hour", "open", "close", "available", "book", "appointment", "time", "wapi", "saa"]
-_NON_CUSTOMER_HINTS = ["lol", "😂", "bro", "free", "eyy", "vipi", "mzee"]
+_NON_CUSTOMER_HINTS = ["lol", "😂", "bro", "free", "oyy", "vipi", "mzee","mjomba","mambo"]
 
 
 def _call_mock(latest_text: str) -> dict:
