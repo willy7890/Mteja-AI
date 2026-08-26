@@ -8,7 +8,7 @@ from app.schemas import (
 app = FastAPI(
     title="MtejaAI",
     description=(
-        "Agentic customer-response platform — demo backend.\n\n"
+        "Agentic customer-response platform demo backend.\n\n"
         "Core loop: a customer message comes in \u2192 gets classified "
         "(customer vs non-customer) \u2192 the agent replies directly for "
         "in-scope questions, or hands off to a human for pricing/complaints.\n\n"
