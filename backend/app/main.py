@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.database import engine, Base
 
 from app.models.user import User
+from app.models import customer, organization 
 from app.models.organization import Organization
 
 app = FastAPI(
