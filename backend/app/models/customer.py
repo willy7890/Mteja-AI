@@ -10,6 +10,7 @@ class Customer(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     phone: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str | None] = mapped_column(String, nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), nullable=False)
 
