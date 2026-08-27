@@ -14,12 +14,18 @@ class CustomerLoginRequest(BaseModel):
 class CustomerResponse(BaseModel):
     id: int
     name: str
-    email: EmailStr
+    email: EmailStr | None = None
     phone: str
     organization_id: int
 
     class Config:
         from_attributes = True
+
+
+class CustomerCreateRequest(BaseModel):
+    name: str
+    phone: str
+    email: EmailStr | None = None
 
 class TokenResponse(BaseModel):
     access_token: str
