@@ -1,14 +1,14 @@
 # orchestrator for MTEJA AI agentic system
 # Specialized agent logic, tool selection, and controlled execution
-# orchestrator for MTEJA AI agentic system
-# Specialized agent logic, tool selection, and controlled execution
-from sqlalchemy.ext.asyncio import AsyncSession
 
+
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.supervisor import Supervisor
 from app.agents.marketing_agent import MarketingAgent
 from app.agents.followup_agent import FollowupAgent
 from app.models.activity_log import ActivityLog
-
+from app.agents.sales_agent import SalesAgent
+from app.agents.support_agent import SupportAgent
 
 class Orchestrator:
     
@@ -18,6 +18,8 @@ class Orchestrator:
         self.agents = {
             "marketing_agent": MarketingAgent(),
             "followup_agent": FollowupAgent(),
+            "sales_agent": SalesAgent(),
+            "support_agent": SupportAgent(),
         }
 
     async def run(
