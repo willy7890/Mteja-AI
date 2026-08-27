@@ -15,3 +15,4 @@ class Organization(Base):
     )
 
     users = relationship("User", back_populates="organization")
+    customers = relationship("Customer", back_populates="organization")
