@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "framer-motion": "^13.1.1"
+  }
 }
