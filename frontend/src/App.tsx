@@ -195,20 +195,29 @@ export function App() {
                 }}
               >
                 {currentChannel.chats.slice(0, visibleMessages).map((msg, idx) => {
-                  const isCustomer = msg.sender === "customer";
-                  
-                  // Text handling for dark/light themes inside standard or dark configurations
-                  const isDarkTheme = currentChannel.id === "tiktok";
-                  const textContrastColor = isDarkTheme && isCustomer ? "text-slate-300" : "text-slate-800";
+  const isCustomer = msg.sender === "customer";
+  const isDarkTheme = currentChannel.id === "tiktok";
+  const textContrastColor = isDarkTheme && isCustomer ? "text-slate-300" : "text-slate-800";
 
-                  return (
-                    <motion.div
-                      key={msg.id}
-                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ duration: 0.25 }}
-
-  ); 
-} 
-
+  return (
+    <motion.div
+      key={msg.id}
+      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.25 }}
+      className={`flex flex-col max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
+        isCustomer
+          ? isDarkTheme 
+            ? "bg-zinc-800 text-white self-start rounded-tl-none border border-zinc-700" 
+            : "bg-white text-slate-800 self-start rounded-tl-none border border-slate-100"
+          : `${currentChannel.accent} self-end rounded-tr-none`
+      }`}
+    >
+      <p className={`m-0 p-0 leading-relaxed font-medium ${textContrastColor}`}>{msg.text}</p>
+      <span className="text-[9px] text-slate-400 self-end mt-1 font-normal tracking-tight">
+        {msg.time}
+      </span>
+    </motion.div>
+  );
+})}
 export default App;
