@@ -2,22 +2,26 @@ from fastapi import FastAPI, HTTPException
 from app import store, agent
 from app.schemas import (
     ContactCreate, Contact, MessageIn, Message, MessageResponse,
-    ClassifyResult, Task, DashboardSummary,
+    ClassifyResult, Task, DashboardSummary, ProductCreate, Product,
 )
 
 app = FastAPI(
     title="MtejaAI",
     description=(
-        "Agentic customer-response platform demo backend.\n\n"
+        "Agentic customer-response platform — demo backend.\n\n"
         "Core loop: a customer message comes in \u2192 gets classified "
         "(customer vs non-customer) \u2192 the agent replies directly for "
         "in-scope questions, or hands off to a human for pricing/complaints.\n\n"
         "Try it: POST /contacts to create a contact, then POST "
         "/contacts/{id}/messages to send them a message and watch the "
-        "classification + reply happen live."
+        "classification + reply happen live. Ask about a product or a "
+        "budget (e.g. 'what can I get for 20000?') to see the agent "
+        "recommend from the real /products catalog."
     ),
-    version="0.1.0-demo",
+    version="0.2.0-demo",
 )
+
+store.seed_demo_products()
 
 
 @app.post("/contacts", response_model=Contact, tags=["Contacts"])
@@ -87,6 +91,17 @@ def send_message(contact_id: int, payload: MessageIn):
 def list_tasks():
     """Messages the agent escalated to a human — this is the safety valve."""
     return store.list_tasks()
+
+
+@app.post("/products", response_model=Product, tags=["Products"])
+def create_product(payload: ProductCreate):
+    """Add a real item to the catalog the agent recommends from."""
+    return store.create_product(payload.name, payload.details, payload.price, payload.quantity, payload.image_url)
+
+
+@app.get("/products", response_model=list[Product], tags=["Products"])
+def list_products():
+    return store.list_products()
 
 
 @app.get("/dashboard/summary", response_model=DashboardSummary, tags=["Dashboard"])

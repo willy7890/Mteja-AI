@@ -9,10 +9,12 @@ from itertools import count
 contacts: dict[int, dict] = {}
 messages: dict[int, dict] = {}
 tasks: dict[int, dict] = {}
+products: dict[int, dict] = {}
 
 _contact_ids = count(1)
 _message_ids = count(1)
 _task_ids = count(1)
+_product_ids = count(1)
 
 
 def create_contact(name: str, channel_id: str) -> dict:
@@ -77,3 +79,39 @@ def create_task(contact_id: int, reason: str) -> dict:
 
 def list_tasks() -> list[dict]:
     return list(tasks.values())
+
+
+def create_product(name: str, details: str, price: float, quantity: int, image_url: str | None) -> dict:
+    pid = next(_product_ids)
+    product = {
+        "id": pid, "name": name, "details": details,
+        "price": price, "quantity": quantity, "image_url": image_url,
+    }
+    products[pid] = product
+    return product
+
+
+def list_products() -> list[dict]:
+    return list(products.values())
+
+
+def search_products(max_price: float | None = None, keyword: str | None = None) -> list[dict]:
+    """Real filtered query against the product catalog — in-stock only."""
+    results = [p for p in products.values() if p["quantity"] > 0]
+    if max_price is not None:
+        results = [p for p in results if p["price"] <= max_price]
+    if keyword:
+        import re
+        pattern = re.compile(r"\b" + re.escape(keyword.lower()) + r"\b")
+        results = [p for p in results if pattern.search(p["name"].lower()) or pattern.search(p["details"].lower())]
+    return sorted(results, key=lambda p: p["price"])
+
+
+def seed_demo_products() -> None:
+    if products:
+        return
+    create_product("Basic Haircut", "Wash, cut, and style. 30 minutes.", 15000, 999, None)
+    create_product("Premium Haircut + Beard Trim", "Full grooming package, 50 minutes.", 30000, 999, None)
+    create_product("Kids Haircut", "For children under 12. 20 minutes.", 8000, 999, None)
+    create_product("Hair Color (Full)", "Full color treatment, includes wash and style.", 55000, 12, None)
+    create_product("Deluxe Spa Package", "Haircut, massage, and facial. 2 hours.", 90000, 5, None)

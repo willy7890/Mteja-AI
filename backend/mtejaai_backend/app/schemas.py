@@ -54,6 +54,23 @@ class Task(BaseModel):
     created_at: datetime
 
 
+class ProductCreate(BaseModel):
+    name: str = Field(..., examples=["Basic Haircut"])
+    details: str = Field(..., examples=["Includes wash and style, 30 minutes"])
+    price: float = Field(..., examples=[15000])
+    quantity: int = Field(..., examples=[999])
+    image_url: Optional[str] = Field(None, examples=["https://example.com/haircut.jpg"])
+
+
+class Product(BaseModel):
+    id: int
+    name: str
+    details: str
+    price: float
+    quantity: int
+    image_url: Optional[str] = None
+
+
 class DashboardSummary(BaseModel):
     total_messages: int
     total_leads: int
