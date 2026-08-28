@@ -62,7 +62,7 @@ const CHANNELS = [
   }
 ];
 
-export default function App() {
+export function App() {
   const [activeTab, setActiveTab] = useState("whatsapp");
   const [visibleMessages, setVisibleMessages] = useState(1);
 
@@ -207,3 +207,8 @@ export default function App() {
                       initial={{ opacity: 0, y: 10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       transition={{ duration: 0.25 }}
+
+  ); 
+} 
+
+export default App;
