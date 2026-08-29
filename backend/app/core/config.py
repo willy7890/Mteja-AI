@@ -1,16 +1,24 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     APP_NAME: str = "MTEJA AI"
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    DATABASE_URL: str = "postgresql+asyncpg://mteja:mteja@localhost:5432/mteja_ai"
-
-    class Config:
-        env_file = ".env"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./mteja_ai.db"
 
     def model_post_init(self, __context):
-        if not self.DATABASE_URL.startswith("postgresql+asyncpg://"):
-            raise ValueError("DATABASE_URL must use PostgreSQL with asyncpg")
+        allowed_prefixes = (
+            "postgresql+asyncpg://",
+            "sqlite+aiosqlite://",
+            "sqlite://",
+        )
+        if not self.DATABASE_URL.startswith(allowed_prefixes):
+            raise ValueError(
+                "DATABASE_URL must use PostgreSQL with asyncpg or SQLite with aiosqlite"
+            )
+
 
 settings = Settings()
