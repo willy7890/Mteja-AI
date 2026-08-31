@@ -40,3 +40,5 @@ function ChatDemo() {
     </div>
   );
 }
+
+export default Hero
