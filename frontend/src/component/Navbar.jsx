@@ -6,11 +6,11 @@ function Navbar() {
 
     //Navlinks
     const Navlinks = [
-        {name:'Theme', href: #ThemeToggle},
-        {name:'Home', href:#HomePage},
-        {name:'About',href:#AboutPage},
-        {name:'Login',href:#LoginPage},
-        {name:'Request Demo',href:#DemoPage}
+        {name:'Theme', href: '#ThemeToggle'},
+        {name:'Home', href:'#HomePage'},
+        {name:'About',href:'#AboutPage'},
+        {name:'Login',href:'#LoginPage'},
+        {name:'Request Demo',href:'#DemoPage'}
     ]
   return (
     <nav className='fixed top-0 w-full z-50 backdrop-blur-md bg-white/70 border-b border-gray-100'>
