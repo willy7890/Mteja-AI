@@ -1,4 +1,5 @@
 import React,{ useState, useEffect } from "react";
+import {Menu,X} from "lucide-react";
 
 const script = [
   { from: "user", text: "Hi, is the blue jacket still available?" },
@@ -6,6 +7,8 @@ const script = [
   { from: "user", text: "Yes please, size L" },
   { from: "ai", text: "Done ✅ Reserved for 24 hours. Payment link sent to your WhatsApp." },
 ];
+
+
 
 function ChatDemo() {
   const [visible, setVisible] = useState(0);
