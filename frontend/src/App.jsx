@@ -4,7 +4,7 @@ import Hero from './component/Hero'
 
 function App() {
   return (
-    <div>hello
+    <div>
       <Navbar />
       <Hero />
     </div>
