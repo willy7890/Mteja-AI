@@ -359,26 +359,4 @@ const themes = {
   },
 };
 
-export default function App() {
-  const [dark, setDark] = useState(false);
-  const t = dark ? themes.dark : themes.light;
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-8 transition-colors duration-300" style={{ background: t.bg }}>
-      <button
-        onClick={() => setDark(!dark)}
-        className="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center"
-        style={{ border: `1px solid ${t.border}`, color: t.text }}
-        aria-label="Toggle theme"
-      >
-        {dark ? <Sun size={18} /> : <Moon size={18} />}
-      </button>
-
-      <h2 className="text-xl font-medium" style={{ color: t.text }}>
-        Preview — platform hub visualization
-      </h2>
-      <PlatformHub t={t} />
-    </div>
-  );
-}
 export default PlatformHub;
