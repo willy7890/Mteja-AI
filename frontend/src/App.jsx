@@ -41,9 +41,6 @@ function generateDoodleTile(color, size = 500, count = 26) {
 function App() {
   const [dark, setDark] = useState(false);
 
-  // useMemo means this only runs ONCE per theme (light vs dark), not on
-  // every re-render — otherwise the pattern would reshuffle and flicker
-  // every time you type in an input or click anything.
   const lightPattern = useMemo(() => generateDoodleTile('rgba(20,32,26,0.14)'), []);
   const darkPattern = useMemo(() => generateDoodleTile('rgba(79,209,197,0.16)'), []);
 
