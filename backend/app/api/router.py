@@ -1,11 +1,41 @@
 from fastapi import APIRouter
-from app.api.v1 import auth
-from app.api.v1 import conversations
-from app.api.v1 import customers
-from app.api.v1 import stock
+
+# Import all individual routers from your v1 modules
+from app.api.v1 import (
+    auth,
+    conversations,
+    customers,
+    stock,
+    webhooks,
+    agents,
+    dashboard,
+    campaigns,
+    deals,
+    leads,
+)
 
 api_router = APIRouter()
-api_router.include_router(auth.router, prefix="/v1")
-api_router.include_router(conversations.router, prefix="/v1")
-api_router.include_router(customers.router, prefix="/v1")
-api_router.include_router(stock.router, prefix="/v1")
+
+# Include each router with appropriate prefixes and tags
+api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(
+    conversations.router, prefix="/conversations", tags=["Unified Inbox"]
+)
+api_router.include_router(
+    customers.router, prefix="/customers", tags=["Customers"]
+)
+api_router.include_router(stock.router, prefix="/stock", tags=["Stock & Inventory"])
+api_router.include_router(
+    webhooks.router, prefix="/webhooks", tags=["Social Media Webhooks"]
+)
+api_router.include_router(
+    agents.router, prefix="/agent", tags=["AI & Analytics Agent"]
+)
+api_router.include_router(
+    dashboard.router, prefix="/dashboard", tags=["Dashboard Analytics"]
+)
+api_router.include_router(
+    campaigns.router, prefix="/campaigns", tags=["Broadcast Campaigns"]
+)
+api_router.include_router(deals.router, prefix="/deals", tags=["Sales Deals"])
+api_router.include_router(leads.router, prefix="/leads", tags=["Lead Management"])
