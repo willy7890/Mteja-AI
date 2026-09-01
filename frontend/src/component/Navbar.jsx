@@ -27,24 +27,23 @@ function Navbar({ t, dark, setDark }) {
 
   return (
     <nav
-      className="fixed top-0 w-full z-50 backdrop-blur-md border-b"
-      style={{ background: t.bg, borderColor: t.border }}
-    >
+      className="fixed top-0 w-full z-50 backdrop-blur-md border-b transition-colors duration-300"
+      style={{ 
+        background: dark ? 'rgba(11,18,32,0.45)' : 'rgba(243,241,234,0.55)',
+        borderColor: dark ? 'rgba(242,240,232,0.12)' : 'rgba(20,32,26,0.10)',}}>
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <span className="text-lg font-semibold" style={{ color: t.text }}>
           Mteja<span style={{ color: t.accent }}>AI</span>
         </span>
 
         <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: t.text }}>
-  {Navlinks.map((link) => (
-    <a 
-  key={link.name}
-  href={link.href}
-  className="px-4 py-1.5 rounded-full text-sm transition-colors hover:opacity-80"
-  style={{ border: `1px solid ${t.border}`, color: t.text }}
->
-  {link.name}
-    </a>
+      {Navlinks.map((link) => (
+        <a 
+          key={link.name}
+          href={link.href}
+          className="px-4 py-1.5 rounded-full text-sm transition-colors hover:opacity-80"
+          style={{ border: `1px solid ${t.border}`, color: t.text }}> {link.name}
+        </a>
   ))}
   <ThemeToggle dark={dark} setDark={setDark} />
 
