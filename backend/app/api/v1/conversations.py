@@ -19,7 +19,7 @@ from app.schemas.conversation import (
 )
 from app.services.agent_service import generate_agent_reply
 
-router = APIRouter(prefix="/conversations", tags=["Unified Inbox"])
+router = APIRouter(tags=["Unified Inbox"])
 
 
 @router.post(

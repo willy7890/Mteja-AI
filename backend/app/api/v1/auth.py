@@ -17,7 +17,7 @@ from app.models.user import User
 from app.models.organization import Organization
 from app.schemas.auth import RegisterRequest, TokenResponse, UserResponse
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):

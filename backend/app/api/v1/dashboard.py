@@ -8,7 +8,7 @@ from app.core.security import get_current_user
 from app.agents.analytics_agent import analyze_customer_sentiment, generate_business_insight
 from app.models.user import User
 
-router = APIRouter(prefix="/dashboard", tags=["Dashboard Analytics"])
+router = APIRouter(tags=["Dashboard Analytics"])
 
 
 @router.get("/metrics", status_code=status.HTTP_200_OK)

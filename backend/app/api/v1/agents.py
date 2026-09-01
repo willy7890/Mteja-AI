@@ -13,7 +13,7 @@ from app.agents.analytics_agent import (
 from app.services.knowledge_service import kb_service
 from app.models.user import User
 
-router = APIRouter(prefix="/agent", tags=["AI & Analytics Agent"])
+router = APIRouter(tags=["AI & Analytics Agent"])
 
 
 class SentimentRequest(BaseModel):

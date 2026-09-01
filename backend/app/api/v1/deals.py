@@ -12,7 +12,7 @@ from app.models.user import User
 from app.models.deal import Deal
 
 
-router = APIRouter(prefix="/deals", tags=["Sales Pipeline & Deals"])
+router = APIRouter(tags=["Sales Pipeline & Deals"])
 
 
 class DealCreate(BaseModel):
