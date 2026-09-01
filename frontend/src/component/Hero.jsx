@@ -10,7 +10,7 @@ const script = [
 
 
 
-function ChatDemo() {
+function Hero() {
   const [visible, setVisible] = useState(0);
 
   useEffect(() => {
