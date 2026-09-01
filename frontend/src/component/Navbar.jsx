@@ -13,9 +13,6 @@ function Navbar({ t, dark, setDark }) {
     { name: 'Request Demo', href: '#DemoPage' },
   ];
 
-  // Instagram's own brand colors in light mode; a magenta-to-teal blend in
-  // dark mode so the hover ties back into the site's existing accent color
-  // instead of clashing with the navy/teal palette.
   const hoverGradient = dark
     ? 'radial-gradient(160px circle at var(--x) var(--y), #ff5da2, #4FD1C5)'
     : 'radial-gradient(160px circle at var(--x) var(--y), #e1306c, #c13584)';
