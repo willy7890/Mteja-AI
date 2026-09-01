@@ -24,3 +24,11 @@ const themes = {
     navBg: "rgba(16,23,19,0.82)",
   },
 };
+function ThemeToggle() {
+  return (
+    <div>
+      
+    </div>
+  )
+}
+export default ThemeToggle
