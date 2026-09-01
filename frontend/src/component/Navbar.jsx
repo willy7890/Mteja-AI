@@ -27,10 +27,10 @@ function Navbar({ t, dark, setDark }) {
 
   return (
     <nav
-      className="fixed top-0 w-full z-50 backdrop-blur-md border-b transition-colors duration-300"
+      className="fixed top-0 w-full z-50 backdrop-blur-md border-b transition-colors duration-300 rounded-full "
       style={{ 
-        background: dark ? 'rgba(11,18,32,0.45)' : 'rgba(243,241,234,0.55)',
-        borderColor: dark ? 'rgba(242,240,232,0.12)' : 'rgba(20,32,26,0.10)',}}>
+        background: dark ? 'rgba(6, 66, 185, 0.45)' : 'rgba(219, 236, 236, 0.47)',
+        borderColor: dark ? 'rgba(23, 23, 26, 0.12)' : 'rgba(134, 143, 138, 0.7)',}}>
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <span className="text-lg font-semibold" style={{ color: t.text }}>
           Mteja<span style={{ color: t.accent }}>AI</span>
@@ -46,7 +46,18 @@ function Navbar({ t, dark, setDark }) {
         </a>
   ))}
   <ThemeToggle dark={dark} setDark={setDark} />
-
+        <button ref={btnRef}
+            onMouseMove={handleMouseMove}
+            className="px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
+            style={{ background: hoverGradient }}>
+              Home
+        </button>
+          <button ref={btnRef}
+              onMouseMove={handleMouseMove}
+              className="px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
+              style={{ background: hoverGradient }}>
+                About
+          </button>
           <button
             ref={btnRef}
             onMouseMove={handleMouseMove}
