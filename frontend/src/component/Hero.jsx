@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PlatformHub from './PlatformHub';
 
 const script = [
   { from: 'user', text: 'Hi, is the blue jacket still available?' },
