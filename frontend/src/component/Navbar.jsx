@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 function Navbar({ t, dark, setDark }) {
   const [isOpen, setIsOpen] = useState(false);
+  const btnRef = useRef(null);
 
   const Navlinks = [
     { name: 'Home', href: '#HomePage' },
@@ -12,10 +13,25 @@ function Navbar({ t, dark, setDark }) {
     { name: 'Request Demo', href: '#DemoPage' },
   ];
 
+  // Instagram's own brand colors in light mode; a magenta-to-teal blend in
+  // dark mode so the hover ties back into the site's existing accent color
+  // instead of clashing with the navy/teal palette.
+  const hoverGradient = dark
+    ? 'radial-gradient(160px circle at var(--x) var(--y), #ff5da2, #4FD1C5)'
+    : 'radial-gradient(160px circle at var(--x) var(--y), #e1306c, #c13584)';
+
+  function handleMouseMove(e) {
+    const rect = btnRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    btnRef.current.style.setProperty('--x', `${x}px`);
+    btnRef.current.style.setProperty('--y', `${y}px`);
+  }
+
   return (
     <nav
       className="fixed top-0 w-full z-50 backdrop-blur-md border-b"
-      style={{ background: t.bg, borderColor: `${t.text}1A` }}
+      style={{ background: t.bg, borderColor: t.border }}
     >
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <span className="text-lg font-semibold" style={{ color: t.text }}>
@@ -29,6 +45,15 @@ function Navbar({ t, dark, setDark }) {
             </a>
           ))}
           <ThemeToggle dark={dark} setDark={setDark} />
+
+          <button
+            ref={btnRef}
+            onMouseMove={handleMouseMove}
+            className="px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
+            style={{ background: hoverGradient }}
+          >
+            Get started
+          </button>
         </div>
 
         <button
