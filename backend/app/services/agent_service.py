@@ -4,7 +4,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 
-# Initialize LLM only if API key is available
+
 def get_llm():
     """Get or initialize the LLM instance"""
     api_key = os.getenv("OPENAI_API_KEY")
@@ -14,10 +14,8 @@ def get_llm():
 
 
 async def generate_agent_reply(user_message: str) -> str:
-  # 1. Retrieve relevant knowledge chunks based on the user's question
   retrieved_context = kb_service.search(user_message, k=2)
 
-  # 2. Construct the system prompt with injected knowledge
   system_prompt = (
       "You are MtejaAI, an AI customer support assistant for a Tanzanian"
       " business.\nUse ONLY the following knowledge base context to answer the"
@@ -33,7 +31,7 @@ async def generate_agent_reply(user_message: str) -> str:
 
   llm = get_llm()
   if llm is None:
-    # Return a default response if no API key is set
+    
     return "I apologize, but I'm unable to process your request at this moment. Please contact our support team."
 
   response = await llm.ainvoke(messages)
