@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
-function Navbar() {
+function Navbar({ t, dark, setDark }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const Navlinks = [
@@ -13,23 +13,27 @@ function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-[#F6F4EE]/85 backdrop-blur-md border-b border-[#1C2B22]/10">
+    <nav
+      className="fixed top-0 w-full z-50 backdrop-blur-md border-b"
+      style={{ background: t.bg, borderColor: `${t.text}1A` }}
+    >
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-        <span className="text-lg font-semibold text-[#1C2B22]">
-          Mteja<span className="text-[#2F6F4E]">AI</span>
+        <span className="text-lg font-semibold" style={{ color: t.text }}>
+          Mteja<span style={{ color: t.accent }}>AI</span>
         </span>
 
-        <div className="hidden md:flex items-center gap-8 text-sm text-[#1C2B22]/70">
+        <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: t.text }}>
           {Navlinks.map((link) => (
-            <a key={link.name} href={link.href} className="hover:text-[#1C2B22] transition-colors">
+            <a key={link.name} href={link.href} className="hover:opacity-70 transition-opacity">
               {link.name}
             </a>
           ))}
-          <ThemeToggle />
+          <ThemeToggle dark={dark} setDark={setDark} />
         </div>
 
         <button
-          className="md:hidden text-[#1C2B22]"
+          className="md:hidden"
+          style={{ color: t.text }}
           onClick={() => setIsOpen((o) => !o)}
           aria-label="Toggle menu"
         >
@@ -38,7 +42,10 @@ function Navbar() {
       </div>
 
       {isOpen && (
-        <div className="md:hidden px-6 pb-5 flex flex-col gap-4 text-sm text-[#1C2B22]/80 bg-[#F6F4EE] border-t border-[#1C2B22]/10">
+        <div
+          className="md:hidden px-6 pb-5 flex flex-col gap-4 text-sm"
+          style={{ background: t.bg, color: t.text }}
+        >
           {Navlinks.map((link) => (
             <a key={link.name} href={link.href} onClick={() => setIsOpen(false)}>
               {link.name}
