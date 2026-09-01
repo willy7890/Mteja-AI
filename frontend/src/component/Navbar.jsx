@@ -36,12 +36,17 @@ function Navbar({ t, dark, setDark }) {
         </span>
 
         <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: t.text }}>
-          {Navlinks.map((link) => (
-            <a key={link.name} href={link.href} className="hover:opacity-70 transition-opacity">
-              {link.name}
-            </a>
-          ))}
-          <ThemeToggle dark={dark} setDark={setDark} />
+  {Navlinks.map((link) => (
+    <a 
+  key={link.name}
+  href={link.href}
+  className="px-4 py-1.5 rounded-full text-sm transition-colors hover:opacity-80"
+  style={{ border: `1px solid ${t.border}`, color: t.text }}
+>
+  {link.name}
+    </a>
+  ))}
+  <ThemeToggle dark={dark} setDark={setDark} />
 
           <button
             ref={btnRef}
@@ -69,9 +74,14 @@ function Navbar({ t, dark, setDark }) {
           style={{ background: t.bg, color: t.text }}
         >
           {Navlinks.map((link) => (
-            <a key={link.name} href={link.href} onClick={() => setIsOpen(false)}>
-              {link.name}
-            </a>
+            <a>
+          key={link.name}
+          href={link.href}
+          onClick={() => setIsOpen(false)}
+          className="px-4 py-1.5 rounded-full text-sm transition-colors hover:opacity-80"
+          style={{ border: `1px solid ${t.border}`, color: t.text }}
+          {link.name}
+        </a>
           ))}
         </div>
       )}
