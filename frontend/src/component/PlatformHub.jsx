@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Mail, Instagram, Phone, Send, Facebook, Sun, Moon } from "lucide-react";
+import { MessageCircle, Mail, Instagram, Phone, Send, Facebook } from "lucide-react";
 
-// `type` decides which row template renders inside the popover:
+// `type` decides which row template renders inside a satellite's popover:
 // "chat" = message list (WhatsApp/Instagram/Messenger/Telegram style),
 // "inbox" = email-style rows, "calls" = call-log rows.
 const platforms = [
@@ -55,13 +55,9 @@ const platforms = [
   },
 ];
 
-const SIZE = 420;
-const CENTER = SIZE / 2;
-const RADIUS = 150;
-
 // Center hub mini-conversation: shows the assistant replying to messages
-// pulled in from different channels, to visually tie the satellites
-// (the problem: messages piling up everywhere) to the hub (the fix).
+// pulled in from different channels, tying the satellites (the problem:
+// messages piling up everywhere) to the hub (the fix).
 const hubScript = [
   { from: "in", channel: "WhatsApp", text: "Is the blue jacket still available?" },
   { from: "ai", text: "Yes! Available in M, L, XL. Want one held for you?" },
@@ -69,21 +65,59 @@ const hubScript = [
   { from: "ai", text: "Yes, 2–3 days delivery. Want me to start your order?" },
 ];
 
+// Breakpoints for the hub's overall size. Everything else (radius, popover
+// offsets) is derived as a fraction of SIZE, so one number controls scale.
+function useHubSize() {
+  const [size, setSize] = useState(420);
+
+  useEffect(() => {
+    function updateSize() {
+      const w = window.innerWidth;
+      if (w < 480) setSize(280);
+      else if (w < 768) setSize(340);
+      else setSize(420);
+    }
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
+
+  return size;
+}
+
 function PlatformHub({ t }) {
+  const SIZE = useHubSize();
+  const CENTER = SIZE / 2;
+  const RADIUS = SIZE * 0.357; // matches the original 150/420 ratio
+
   const [drawn, setDrawn] = useState(false);
   const [hovered, setHovered] = useState(null);
   const [centerHovered, setCenterHovered] = useState(false);
   const [hubVisible, setHubVisible] = useState(0);
   const [hubTyping, setHubTyping] = useState(false);
 
+  // Each satellite's position and popover offset computed ONCE per render,
+  // shared by both the SVG line and the icon below — no duplicated trig,
+  // no risk of the two drifting out of sync if RADIUS or angles change.
+  const positioned = platforms.map((p) => {
+    const rad = (p.angle * Math.PI) / 180;
+    const x = CENTER + RADIUS * Math.cos(rad);
+    const y = CENTER + RADIUS * Math.sin(rad);
+    const midX = (CENTER + x) / 2 + (y - CENTER) * 0.15;
+    const midY = (CENTER + y) / 2 - (x - CENTER) * 0.15;
+    const popX = CENTER + (RADIUS + 110) * Math.cos(rad);
+    const popY = CENTER + (RADIUS + 75) * Math.sin(rad);
+    return { ...p, x, y, midX, midY, popX, popY };
+  });
+
   useEffect(() => {
     setDrawn(false);
     const timer = setTimeout(() => setDrawn(true), 200);
     return () => clearTimeout(timer);
-  }, [t]);
+  }, [t, SIZE]);
 
-  // Drives the center hub's mini chat: only runs while hovered. Resets to
-  // the start whenever the mouse leaves, so it always replays from message 1.
+  // Drives the center hub's mini chat: only runs while hovered, resets to
+  // the start whenever the mouse leaves so it always replays from message 1.
   useEffect(() => {
     if (!centerHovered) {
       setHubVisible(0);
@@ -108,29 +142,22 @@ function PlatformHub({ t }) {
   return (
     <div className="relative mx-auto" style={{ width: SIZE, height: SIZE }}>
       <svg width={SIZE} height={SIZE} className="absolute inset-0">
-        {platforms.map((p, i) => {
-          const rad = (p.angle * Math.PI) / 180;
-          const x = CENTER + RADIUS * Math.cos(rad);
-          const y = CENTER + RADIUS * Math.sin(rad);
-          const midX = (CENTER + x) / 2 + (y - CENTER) * 0.15;
-          const midY = (CENTER + y) / 2 - (x - CENTER) * 0.15;
-
-          return (
-            <path
-              key={i}
-              d={`M ${CENTER} ${CENTER} Q ${midX} ${midY} ${x} ${y}`}
-              fill="none"
-              stroke={t.accent}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeDasharray="300"
-              strokeDashoffset={drawn ? 0 : 300}
-              style={{ transition: `stroke-dashoffset 0.9s ease-out ${i * 0.08}s`, opacity: 0.5 }}
-            />
-          );
-        })}
+        {positioned.map((p, i) => (
+          <path
+            key={p.name}
+            d={`M ${CENTER} ${CENTER} Q ${p.midX} ${p.midY} ${p.x} ${p.y}`}
+            fill="none"
+            stroke={t.accent}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeDasharray="300"
+            strokeDashoffset={drawn ? 0 : 300}
+            style={{ transition: `stroke-dashoffset 0.9s ease-out ${i * 0.08}s`, opacity: 0.5 }}
+          />
+        ))}
       </svg>
 
+      {/* Central hub */}
       <div
         className="absolute flex items-center justify-center rounded-2xl shadow-xl cursor-pointer"
         onMouseEnter={() => setCenterHovered(true)}
@@ -153,8 +180,8 @@ function PlatformHub({ t }) {
         <div
           className="absolute rounded-xl shadow-2xl overflow-hidden pointer-events-none"
           style={{
-            left: CENTER - 115,
-            top: CENTER - 210,
+            left: Math.max(8, CENTER - 115),
+            top: Math.max(8, CENTER - 210),
             width: 230,
             background: t.card,
             border: `1px solid ${t.border}`,
@@ -205,21 +232,13 @@ function PlatformHub({ t }) {
         </div>
       )}
 
-      {platforms.map((p, i) => {
-        const rad = (p.angle * Math.PI) / 180;
-        const x = CENTER + RADIUS * Math.cos(rad);
-        const y = CENTER + RADIUS * Math.sin(rad);
+      {/* Satellite icons + their hover popovers */}
+      {positioned.map((p, i) => {
         const { Icon } = p;
         const isHovered = hovered === i;
 
-        // Popover position: push it further out along the same angle the
-        // icon already sits on, so it always appears "outside" the circle
-        // instead of overlapping neighboring icons.
-        const popX = CENTER + (RADIUS + 110) * Math.cos(rad);
-        const popY = CENTER + (RADIUS + 75) * Math.sin(rad);
-
         return (
-          <div key={i}>
+          <div key={p.name}>
             <div
               className="absolute flex items-center justify-center rounded-full shadow-lg float cursor-pointer"
               onMouseEnter={() => setHovered(i)}
@@ -227,8 +246,8 @@ function PlatformHub({ t }) {
               style={{
                 width: 52,
                 height: 52,
-                left: x - 26,
-                top: y - 26,
+                left: p.x - 26,
+                top: p.y - 26,
                 background: t.card,
                 border: isHovered ? `2px solid ${p.color}` : `1px solid ${t.border}`,
                 animationDelay: `${i * 0.3}s`,
@@ -240,7 +259,6 @@ function PlatformHub({ t }) {
               }}
             >
               <Icon size={22} color={p.color} strokeWidth={2} />
-
               <span
                 className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full text-[10px] font-semibold text-white"
                 style={{ width: 18, height: 18, background: "#E5484D" }}
@@ -253,8 +271,8 @@ function PlatformHub({ t }) {
               <div
                 className="absolute rounded-xl shadow-2xl overflow-hidden pointer-events-none"
                 style={{
-                  left: popX - 100,
-                  top: popY - 90,
+                  left: Math.min(Math.max(p.popX - 100, 4), SIZE - 224),
+                  top: Math.min(Math.max(p.popY - 90, 4), SIZE - 4),
                   width: 220,
                   background: t.card,
                   border: `1px solid ${t.border}`,
@@ -339,24 +357,5 @@ function PlatformHub({ t }) {
     </div>
   );
 }
-
-const themes = {
-  light: {
-    bg: "#F3F1EA",
-    text: "#14201A",
-    card: "#FFFFFF",
-    accent: "#2F6F4E",
-    accentText: "#FFFFFF",
-    border: "rgba(20,32,26,0.10)",
-  },
-  dark: {
-    bg: "#0B1220",
-    text: "#F2F0E8",
-    card: "#141E2B",
-    accent: "#4FD1C5",
-    accentText: "#0B1220",
-    border: "rgba(242,240,232,0.12)",
-  },
-};
 
 export default PlatformHub;
