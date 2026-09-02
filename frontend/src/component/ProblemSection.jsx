@@ -1,3 +1,4 @@
+import { useState } from "react";
 
 const complaints = [
   {
@@ -19,6 +20,9 @@ const complaints = [
 ];
 
 function ProblemSection({ t }) {
+ 
+  const [hovered, setHovered] = useState(null);
+
   return (
     <section className="px-6 py-24 max-w-6xl mx-auto">
       <div className="max-w-xl mb-14">
@@ -31,27 +35,39 @@ function ProblemSection({ t }) {
       </div>
 
       <div className="grid sm:grid-cols-2 gap-5">
-        {complaints.map((c) => (
-          <div
-            key={c.name}
-            className="rounded-2xl p-6 relative"
-            style={{ background: t.card, border: `1px solid ${t.border}` }}
-          >
-            {/* Speech-bubble tail, drawn as a small rotated square clipped
-                by the card's own background — a common CSS trick for
-                bubble tails without needing an SVG. */}
+        {complaints.map((c, i) => {
+          const isHovered = hovered === i;
+          return (
             <div
-              className="absolute w-3 h-3 rotate-45 -top-1.5 left-8"
-              style={{ background: t.card, borderLeft: `1px solid ${t.border}`, borderTop: `1px solid ${t.border}` }}
-            />
-            <p className="text-[15px] leading-relaxed" style={{ color: t.text }}>
-              "{c.quote}"
-            </p>
-            <div className="mt-4 text-sm font-medium" style={{ color: t.muted }}>
-              {c.name}
+              key={c.name}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              className="rounded-2xl p-6 relative transition-transform duration-200 ease-out cursor-default"
+              style={{
+                background: t.card,
+                border: `1px solid ${isHovered ? t.accent : t.border}`,
+                transform: isHovered ? "translateY(-4px)" : "translateY(0)",
+                boxShadow: isHovered ? "0 16px 32px -12px rgba(0,0,0,0.25)" : "none",
+              }}
+            >
+              
+              <div
+                className="absolute w-3 h-3 rotate-45 -top-1.5 left-8 transition-colors duration-200"
+                style={{
+                  background: t.card,
+                  borderLeft: `1px solid ${isHovered ? t.accent : t.border}`,
+                  borderTop: `1px solid ${isHovered ? t.accent : t.border}`,
+                }}
+              />
+              <p className="text-[15px] leading-relaxed" style={{ color: t.text }}>
+                "{c.quote}"
+              </p>
+              <div className="mt-4 text-sm font-medium" style={{ color: t.muted }}>
+                {c.name}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
