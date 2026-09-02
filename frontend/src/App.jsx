@@ -87,6 +87,7 @@ function App() {
     >
       <Navbar t={t} dark={dark} setDark={setDark} />
       <Hero t={t} />
+      <TrustBar t={t} />
       <ProblemSection t={t} />
       <Testimonial t={t} />
       <Footer t={t} />
