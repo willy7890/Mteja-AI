@@ -87,7 +87,7 @@ function App() {
       <Navbar t={t} dark={dark} setDark={setDark} />
       <Hero t={t} />
       <ProblemSection t={t} />
-      <Testimonials t={t} />
+      <Testimonial t={t} />
       <Footer t={t} />
     </div>
   );
