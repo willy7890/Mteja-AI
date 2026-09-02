@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 const testimonials = [
   {
     name: "Amina Hassan",
@@ -19,8 +21,7 @@ const testimonials = [
   },
 ];
 
-// Renders `count` filled stars out of 5. Kept as its own small function
-// since it's used identically for every testimonial card.
+
 function Stars({ count, color }) {
   return (
     <div className="flex gap-0.5">
@@ -34,6 +35,8 @@ function Stars({ count, color }) {
 }
 
 function Testimonials({ t }) {
+  const [hovered, setHovered] = useState(null);
+
   return (
     <section className="px-6 py-24 max-w-6xl mx-auto">
       <div className="max-w-xl mb-14 mx-auto text-center">
@@ -46,26 +49,36 @@ function Testimonials({ t }) {
       </div>
 
       <div className="grid sm:grid-cols-3 gap-5">
-        {testimonials.map((r) => (
-          <div
-            key={r.name}
-            className="rounded-2xl p-6 flex flex-col"
-            style={{ background: t.card, border: `1px solid ${t.border}` }}
-          >
-            <Stars count={r.rating} color={t.accent} />
-            <p className="mt-4 text-[15px] leading-relaxed flex-1" style={{ color: t.text }}>
-              "{r.quote}"
-            </p>
-            <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
-              <div className="text-sm font-medium" style={{ color: t.text }}>
-                {r.name}
-              </div>
-              <div className="text-xs" style={{ color: t.muted }}>
-                {r.role}
+        {testimonials.map((r, i) => {
+          const isHovered = hovered === i;
+          return (
+            <div
+              key={r.name}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              className="rounded-2xl p-6 flex flex-col transition-transform duration-200 ease-out cursor-default"
+              style={{
+                background: t.card,
+                border: `1px solid ${isHovered ? t.accent : t.border}`,
+                transform: isHovered ? "translateY(-4px)" : "translateY(0)",
+                boxShadow: isHovered ? "0 16px 32px -12px rgba(0,0,0,0.25)" : "none",
+              }}
+            >
+              <Stars count={r.rating} color={t.accent} />
+              <p className="mt-4 text-[15px] leading-relaxed flex-1" style={{ color: t.text }}>
+                "{r.quote}"
+              </p>
+              <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
+                <div className="text-sm font-medium" style={{ color: t.text }}>
+                  {r.name}
+                </div>
+                <div className="text-xs" style={{ color: t.muted }}>
+                  {r.role}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
