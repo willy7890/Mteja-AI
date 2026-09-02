@@ -61,7 +61,7 @@ function Testimonials({ t }) {
                 background: t.card,
                 border: `1px solid ${isHovered ? t.accent : t.border}`,
                 transform: isHovered ? "translateY(-4px)" : "translateY(0)",
-                boxShadow: isHovered ? "0 16px 32px -12px rgba(0,0,0,0.25)" : "none",
+                boxShadow: isHovered ? "0 16px 32px -12px rgba(19, 221, 221, 0.25)" : "none",
               }}
             >
               <Stars count={r.rating} color={t.accent} />

@@ -42,7 +42,7 @@ function ProblemSection({ t }) {
               key={c.name}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
-              className="rounded-2xl p-6 relative transition-transform duration-200 ease-out cursor-default"
+              className="rounded-2xl p-6 relative transition-transform duration-200 ease-out cursor-default shadow-xl inset-shadow-sm inset-shadow-indigo-500"
               style={{
                 background: t.card,
                 border: `1px solid ${isHovered ? t.accent : t.border}`,
