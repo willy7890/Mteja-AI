@@ -2,9 +2,45 @@ import { useState, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
+// A single nav pill that tracks the mouse itself via its own ref — because
+// this is a separate component instance per link, each one gets its own
+// private ref automatically. No shared array of refs needed.
+function NavPill({ href, children, t, dark, onClick }) {
+  const ref = useRef(null);
+
+  const glow = dark
+    ? 'radial-gradient(90px circle at var(--x) var(--y), rgba(255,93,162,0.35), transparent 70%)'
+    : 'radial-gradient(90px circle at var(--x) var(--y), rgba(225,48,108,0.18), transparent 70%)';
+
+  function handleMouseMove(e) {
+    const rect = ref.current.getBoundingClientRect();
+    ref.current.style.setProperty('--x', `${e.clientX - rect.left}px`);
+    ref.current.style.setProperty('--y', `${e.clientY - rect.top}px`);
+  }
+
+  return (
+    <a
+      ref={ref}
+      href={href}
+      onClick={onClick}
+      onMouseMove={handleMouseMove}
+      className="px-4 py-1.5 rounded-full text-sm transition-colors duration-150"
+      style={{
+        border: `1px solid ${t.border}`,
+        color: t.text,
+        backgroundImage: glow,
+        '--x': '50%',
+        '--y': '50%',
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
 function Navbar({ t, dark, setDark }) {
   const [isOpen, setIsOpen] = useState(false);
-  const btnRef = useRef(null);
+  const ctaRef = useRef(null);
 
   const Navlinks = [
     { name: 'Home', href: '#HomePage' },
@@ -13,56 +49,40 @@ function Navbar({ t, dark, setDark }) {
     { name: 'Request Demo', href: '#DemoPage' },
   ];
 
-  const hoverGradient = dark
+  const ctaGradient = dark
     ? 'radial-gradient(160px circle at var(--x) var(--y), #ff5da2, #4FD1C5)'
     : 'radial-gradient(160px circle at var(--x) var(--y), #e1306c, #c13584)';
 
-  function handleMouseMove(e) {
-    const rect = btnRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    btnRef.current.style.setProperty('--x', `${x}px`);
-    btnRef.current.style.setProperty('--y', `${y}px`);
+  function handleCtaMove(e) {
+    const rect = ctaRef.current.getBoundingClientRect();
+    ctaRef.current.style.setProperty('--x', `${e.clientX - rect.left}px`);
+    ctaRef.current.style.setProperty('--y', `${e.clientY - rect.top}px`);
   }
 
   return (
     <nav
-      className="fixed top-0 w-full z-50 backdrop-blur-md border-b transition-colors duration-300 rounded-full "
-      style={{ 
-        background: dark ? 'rgba(6, 66, 185, 0.45)' : 'rgba(219, 236, 236, 0.47)',
-        borderColor: dark ? 'rgba(23, 23, 26, 0.12)' : 'rgba(134, 143, 138, 0.7)',}}>
+      className="fixed top-0 w-full z-50 backdrop-blur-md border-b"
+      style={{ background: t.bg, borderColor: t.border }}
+    >
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         <span className="text-lg font-semibold" style={{ color: t.text }}>
           Mteja<span style={{ color: t.accent }}>AI</span>
         </span>
 
-        <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: t.text }}>
-      {Navlinks.map((link) => (
-        <a 
-          key={link.name}
-          href={link.href}
-          className="px-4 py-1.5 rounded-full text-sm transition-colors hover:opacity-80"
-          style={{ border: `1px solid ${t.border}`, color: t.text }}> {link.name}
-        </a>
-  ))}
-  <ThemeToggle dark={dark} setDark={setDark} />
-        <button ref={btnRef}
-            onMouseMove={handleMouseMove}
-            className="px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
-            style={{ background: hoverGradient }}>
-              Home
-        </button>
-          <button ref={btnRef}
-              onMouseMove={handleMouseMove}
-              className="px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
-              style={{ background: hoverGradient }}>
-                About
-          </button>
+        <div className="hidden md:flex items-center gap-3 text-sm">
+          {Navlinks.map((link) => (
+            <NavPill key={link.name} href={link.href} t={t} dark={dark}>
+              {link.name}
+            </NavPill>
+          ))}
+
+          <ThemeToggle dark={dark} setDark={setDark} />
+
           <button
-            ref={btnRef}
-            onMouseMove={handleMouseMove}
+            ref={ctaRef}
+            onMouseMove={handleCtaMove}
             className="px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
-            style={{ background: hoverGradient }}
+            style={{ background: ctaGradient, '--x': '50%', '--y': '50%' }}
           >
             Get started
           </button>
@@ -80,18 +100,13 @@ function Navbar({ t, dark, setDark }) {
 
       {isOpen && (
         <div
-          className="md:hidden px-6 pb-5 flex flex-col gap-4 text-sm"
+          className="md:hidden px-6 pb-5 flex flex-col gap-3 text-sm"
           style={{ background: t.bg, color: t.text }}
         >
           {Navlinks.map((link) => (
-          <a
-            key={link.name}
-            href={link.href}
-            onClick={() => setIsOpen(false)}
-            className="px-4 py-1.5 rounded-full text-sm transition-colors hover:opacity-80"
-            style={{ border: `1px solid ${t.border}`, color: t.text }}>
-            {link.name}
-          </a>
+            <NavPill key={link.name} href={link.href} t={t} dark={dark} onClick={() => setIsOpen(false)}>
+              {link.name}
+            </NavPill>
           ))}
         </div>
       )}
