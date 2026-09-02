@@ -47,7 +47,7 @@ function ProblemSection({ t }) {
                 background: t.card,
                 border: `1px solid ${isHovered ? t.accent : t.border}`,
                 transform: isHovered ? "translateY(-4px)" : "translateY(0)",
-                boxShadow: isHovered ? "0 16px 32px -12px rgba(0,0,0,0.25)" : "none",
+                boxShadow: isHovered ? "0 16px 32px -12px rgba(35, 180, 224, 0.25)" : "none",
               }}
             >
               

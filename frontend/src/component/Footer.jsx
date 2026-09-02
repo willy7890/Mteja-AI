@@ -14,8 +14,6 @@ const columns = [
 ];
 
 function Footer({ t }) {
-  // Computed once at render time, so the copyright year never needs
-  // manual updating — always reflects whatever year the page is viewed in.
   const year = new Date().getFullYear();
 
   return (
