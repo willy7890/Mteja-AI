@@ -2,9 +2,6 @@ import { useState, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
-// A single nav pill that tracks the mouse itself via its own ref — because
-// this is a separate component instance per link, each one gets its own
-// private ref automatically. No shared array of refs needed.
 function NavPill({ href, children, t, dark, onClick }) {
   const ref = useRef(null);
 
