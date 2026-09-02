@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { MessageCircle, Mail, Camera, Phone, Send, MessageSquare } from "lucide-react";
-// Note: lucide-react dropped brand-name icons (Instagram, Facebook, etc.)
-// a while back — only generic icons ship now. Using generic icons here
-// also avoids relying on real trademarked logos in the mockup; the brand
-// color + label already does the "which platform" recognition work.
 
-// `type` decides which row template renders inside a satellite's popover:
-// "chat" = message list (WhatsApp/Instagram/Messenger/Telegram style),
-// "inbox" = email-style rows, "calls" = call-log rows.
 const platforms = [
   {
     Icon: MessageCircle, color: "#25D366", angle: -90, name: "WhatsApp", type: "chat",
@@ -59,9 +52,7 @@ const platforms = [
   },
 ];
 
-// Center hub mini-conversation: shows the assistant replying to messages
-// pulled in from different channels, tying the satellites (the problem:
-// messages piling up everywhere) to the hub (the fix).
+
 const hubScript = [
   { from: "in", channel: "WhatsApp", text: "Is the blue jacket still available?" },
   { from: "ai", text: "Yes! Available in M, L, XL. Want one held for you?" },
@@ -69,8 +60,6 @@ const hubScript = [
   { from: "ai", text: "Yes, 2–3 days delivery. Want me to start your order?" },
 ];
 
-// Breakpoints for the hub's overall size. Everything else (radius, popover
-// offsets) is derived as a fraction of SIZE, so one number controls scale.
 function useHubSize() {
   const [size, setSize] = useState(420);
 
@@ -100,9 +89,7 @@ function PlatformHub({ t }) {
   const [hubVisible, setHubVisible] = useState(0);
   const [hubTyping, setHubTyping] = useState(false);
 
-  // Each satellite's position and popover offset computed ONCE per render,
-  // shared by both the SVG line and the icon below — no duplicated trig,
-  // no risk of the two drifting out of sync if RADIUS or angles change.
+  
   const positioned = platforms.map((p) => {
     const rad = (p.angle * Math.PI) / 180;
     const x = CENTER + RADIUS * Math.cos(rad);
@@ -121,7 +108,7 @@ function PlatformHub({ t }) {
   }, [t, SIZE]);
 
   // Drives the center hub's mini chat: only runs while hovered, resets to
-  // the start whenever the mouse leaves so it always replays from message 1.
+
   useEffect(() => {
     if (!centerHovered) {
       setHubVisible(0);
