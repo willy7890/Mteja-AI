@@ -56,7 +56,7 @@ function Testimonials({ t }) {
               key={r.name}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
-              className="rounded-2xl p-6 flex flex-col transition-transform duration-200 ease-out cursor-default shadow-xl"
+              className="rounded-2xl p-6 flex flex-col transition-transform duration-200 ease-out cursor-default shadow-xl inset-shadow-sm inset-shadow-indigo-500"
               style={{
                 background: t.card,
                 border: `1px solid ${isHovered ? t.accent : t.border}`,
