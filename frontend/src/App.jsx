@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import Navbar from './component/Navbar';
 import Hero from './component/Hero';
 import ProblemSection from './component/ProblemSection';
-import Testimonial from './component/Testimonials';
+import Testimonial from './component/Testimonial';
 import Footer from './component/Footer';
 
 // A few small doodle shapes, each drawn centered near (0,0) so they can be
