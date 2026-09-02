@@ -24,7 +24,7 @@ function Footer({ t }) {
             Mteja<span style={{ color: t.accent }}>AI</span>
           </span>
           <p className="mt-3 text-sm max-w-[220px]" style={{ color: t.muted }}>
-            Every customer message, answered — across every channel you use.
+            Every customer message, answered across every channel you use.
           </p>
         </div>
 
