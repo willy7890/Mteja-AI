@@ -76,7 +76,7 @@ function Navbar({ t, dark, setDark }) {
             </NavPill>
           ))}
 
-          <ThemeToggle dark={dark} setDark={setDark} />
+          <ThemeToggle t={} dark={dark} setDark={setDark} />
 
           <button
             ref={ctaRef}
