@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Mail, Instagram, Phone, Send, Facebook } from "lucide-react";
+import { MessageCircle, Mail, Camera, Phone, Send, MessageSquare } from "lucide-react";
+// Note: lucide-react dropped brand-name icons (Instagram, Facebook, etc.)
+// a while back — only generic icons ship now. Using generic icons here
+// also avoids relying on real trademarked logos in the mockup; the brand
+// color + label already does the "which platform" recognition work.
 
 // `type` decides which row template renders inside a satellite's popover:
 // "chat" = message list (WhatsApp/Instagram/Messenger/Telegram style),
@@ -14,7 +18,7 @@ const platforms = [
     ],
   },
   {
-    Icon: Instagram, color: "#E1306C", angle: -30, name: "Instagram", type: "chat",
+    Icon: Camera, color: "#E1306C", angle: -30, name: "Instagram", type: "chat",
     items: [
       { who: "@neema.designs", text: "Do you ship to Mwanza?", time: "5m" },
       { who: "@collins_tz", text: "Price for the leather bag?", time: "22m" },
@@ -30,7 +34,7 @@ const platforms = [
     ],
   },
   {
-    Icon: Facebook, color: "#0084FF", angle: 90, name: "Messenger", type: "chat",
+    Icon: MessageSquare, color: "#0084FF", angle: 90, name: "Messenger", type: "chat",
     items: [
       { who: "Happiness L.", text: "Still waiting for a reply", time: "1m" },
       { who: "Baraka T.", text: "Do you have size 42?", time: "18m" },
