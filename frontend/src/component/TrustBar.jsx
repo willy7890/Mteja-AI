@@ -1,5 +1,5 @@
 
-const companies = ['Northstar', 'Blue Harbor', 'Vertex Retail', 'Cedarline', 'Meridian Co.'];
+const companies = ['SigniAI'];
 
 function TrustBar({ t }) {
   return (
