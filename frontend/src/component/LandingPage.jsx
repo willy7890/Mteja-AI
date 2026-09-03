@@ -2,7 +2,7 @@ import Hero from './Hero';
 import TrustBar from './TrustBar';
 import FeatureGrid from './FeatureGrid';
 import ProblemSection from './ProblemSection';
-import Testimonials from './Testimonials';
+import Testimonial from './Testimonial';
 import FinalCta from './FinalCta';
 
 function LandingPage({ t }) {
