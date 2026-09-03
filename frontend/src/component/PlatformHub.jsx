@@ -60,6 +60,7 @@ const hubScript = [
   { from: "ai", text: "Yes, 2–3 days delivery. Want me to start your order?" },
 ];
 
+
 function useHubSize() {
   const [size, setSize] = useState(420);
 
@@ -108,7 +109,7 @@ function PlatformHub({ t }) {
   }, [t, SIZE]);
 
   // Drives the center hub's mini chat: only runs while hovered, resets to
-
+  // the start whenever the mouse leaves so it always replays from message 1.
   useEffect(() => {
     if (!centerHovered) {
       setHubVisible(0);
@@ -240,12 +241,14 @@ function PlatformHub({ t }) {
                 left: p.x - 26,
                 top: p.y - 26,
                 background: t.card,
-                border: isHovered ? `2px solid ${p.color}` : `1px solid ${t.border}`,
+                
+                border: isHovered ? `2px solid ${p.color}` : `1.5px solid ${p.color}40`,
+                boxShadow: isHovered ? "none" : `0 0 0 3px ${p.color}14`,
                 animationDelay: `${i * 0.3}s`,
                 animationPlayState: isHovered ? "paused" : "running",
                 opacity: drawn ? 1 : 0,
                 transform: drawn ? (isHovered ? "scale(1.15)" : "scale(1)") : "scale(0.6)",
-                transition: `transform 0.2s ease-out, opacity 0.4s ease-out ${0.6 + i * 0.08}s, border 0.15s`,
+                transition: `transform 0.2s ease-out, opacity 0.4s ease-out ${0.6 + i * 0.08}s, border 0.15s, box-shadow 0.15s`,
                 zIndex: isHovered ? 20 : 1,
               }}
             >

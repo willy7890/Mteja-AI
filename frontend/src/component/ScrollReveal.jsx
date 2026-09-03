@@ -7,7 +7,7 @@ function ScrollReveal({
   delay = 0,
   duration = 700,
   y = 24,
-  once = true,
+  once = false,
 }) {
   const ref = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
