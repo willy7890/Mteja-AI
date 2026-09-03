@@ -1,22 +1,36 @@
+import { Link } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
+
 
 const columns = [
   {
     title: "Product",
-    links: ["Features", "Pricing", "Request Demo"],
+    links: [
+      { label: "Features", to: "#" },
+      { label: "Pricing", to: "#" },
+      { label: "Request Demo", to: "#" },
+    ],
   },
   {
     title: "Company",
-    links: ["About", "Careers", "Contact"],
+    links: [
+      { label: "About", to: "#" },
+      { label: "Careers", to: "#" },
+      { label: "Contact", to: "#" },
+    ],
   },
   {
     title: "Legal",
-    links: ["Privacy Policy", "Terms of Service"],
+    links: [
+      { label: "Privacy Policy", to: "/privacy" },
+      { label: "Terms of Service", to: "/terms" },
+    ],
   },
 ];
 
 function Footer({ t }) {
-  
+  // Computed once at render time, so the copyright year never needs
+  // manual updating — always reflects whatever year the page is viewed in.
   const year = new Date().getFullYear();
 
   return (
@@ -40,14 +54,25 @@ function Footer({ t }) {
               </div>
               <ul className="space-y-2">
                 {col.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="text-sm hover:opacity-70 transition-opacity"
-                      style={{ color: t.muted }}
-                    >
-                      {link}
-                    </a>
+                  <li key={link.label}>
+                    {link.to.startsWith("/") ? (
+                     
+                      <Link
+                        to={link.to}
+                        className="text-sm hover:opacity-70 transition-opacity"
+                        style={{ color: t.muted }}
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.to}
+                        className="text-sm hover:opacity-70 transition-opacity"
+                        style={{ color: t.muted }}
+                      >
+                        {link.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
