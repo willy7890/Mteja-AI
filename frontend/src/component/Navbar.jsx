@@ -2,8 +2,11 @@ import { useState, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
+
 function NavPill({ href, children, t, dark, onClick }) {
   const ref = useRef(null);
+  
+  const [isHover, setIsHover] = useState(false);
 
   const glow = dark
     ? 'radial-gradient(90px circle at var(--x) var(--y), rgba(255,93,162,0.35), transparent 70%)'
@@ -21,11 +24,13 @@ function NavPill({ href, children, t, dark, onClick }) {
       href={href}
       onClick={onClick}
       onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHover(true)}
+      onMouseLeave={() => setIsHover(false)}
       className="px-4 py-1.5 rounded-full text-sm transition-colors duration-150"
       style={{
         border: `1px solid ${t.border}`,
         color: t.text,
-        backgroundImage: glow,
+        backgroundImage: isHover ? glow : 'none',
         '--x': '50%',
         '--y': '50%',
       }}
@@ -73,7 +78,7 @@ function Navbar({ t, dark, setDark }) {
             </NavPill>
           ))}
 
-          <ThemeToggle t={t} dark={dark} setDark={setDark} />
+          <ThemeToggle dark={dark} setDark={setDark} />
 
           <button
             ref={ctaRef}

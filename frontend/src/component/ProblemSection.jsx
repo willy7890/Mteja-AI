@@ -47,6 +47,8 @@ function ProblemSection({ t }) {
               <div
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
+                onTouchStart={() => setHovered(i)}
+                onTouchEnd={() => setHovered(null)}
                 className="rounded-2xl p-6 relative transition-transform duration-200 ease-out cursor-default"
                 style={{
                   background: t.card,

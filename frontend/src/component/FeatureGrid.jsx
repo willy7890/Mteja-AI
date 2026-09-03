@@ -58,7 +58,7 @@ function FeatureGrid({ t }) {
         {features.map((f, i) => (
           <ScrollReveal key={f.title} delay={i * 80}>
             <div
-              className="rounded-2xl p-6 h-full transition-transform duration-200 hover:-translate-y-1"
+              className="rounded-2xl p-6 h-full transition-transform duration-200 hover:-translate-y-1 active:-translate-y-1"
               style={{ background: t.card, border: `1px solid ${t.border}` }}
             >
               <div
