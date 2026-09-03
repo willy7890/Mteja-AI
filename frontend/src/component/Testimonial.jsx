@@ -35,7 +35,7 @@ function Stars({ count, color }) {
   );
 }
 
-function Testimonials({ t }) {
+function Testimonial({ t }) {
   const [hovered, setHovered] = useState(null);
 
   return (

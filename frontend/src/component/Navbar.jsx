@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { Link } from 'react-router-dom';
 
 
 function NavPill({ href, children, t, dark, onClick }) {
