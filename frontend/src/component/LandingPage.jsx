@@ -18,7 +18,7 @@ function LandingPage({ t }) {
       <ProblemSection t={t} />
 
       <div style={{ background: t.sectionTint }}>
-        <Testimonials t={t} />
+        <Testimonial t={t} />
       </div>
 
       <FinalCta t={t} />
