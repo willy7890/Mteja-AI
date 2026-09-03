@@ -107,7 +107,7 @@ function App() {
       <div style={{ background: t.sectionTint }}>
         <Testimonial t={t} />
       </div>
-
+      <FinalCta t={t} />
       <Footer t={t} />
     </div>
   );
