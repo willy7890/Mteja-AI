@@ -1,4 +1,6 @@
 import { useState } from "react";
+import ScrollReveal from "./ScrollReveal";
+
 
 const complaints = [
   {
@@ -20,52 +22,56 @@ const complaints = [
 ];
 
 function ProblemSection({ t }) {
- 
+  
   const [hovered, setHovered] = useState(null);
 
   return (
     <section className="px-6 py-24 max-w-6xl mx-auto">
-      <div className="max-w-xl mb-14">
-        <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight" style={{ color: t.text }}>
-          Sound familiar?
-        </h2>
-        <p className="mt-3 text-lg" style={{ color: t.muted }}>
-          This is what running a business across five different apps actually feels like.
-        </p>
-      </div>
+      <ScrollReveal>
+        <div className="max-w-xl mb-14">
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight" style={{ color: t.text }}>
+            Sound familiar?
+          </h2>
+          <p className="mt-3 text-lg" style={{ color: t.muted }}>
+            This is what running a business across five different apps actually feels like.
+          </p>
+        </div>
+      </ScrollReveal>
 
       <div className="grid sm:grid-cols-2 gap-5">
         {complaints.map((c, i) => {
           const isHovered = hovered === i;
           return (
-            <div
-              key={c.name}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-              className="rounded-2xl p-6 relative transition-transform duration-200 ease-out cursor-default shadow-xl inset-shadow-sm inset-shadow-indigo-500"
-              style={{
-                background: t.card,
-                border: `1px solid ${isHovered ? t.accent : t.border}`,
-                transform: isHovered ? "translateY(-4px)" : "translateY(0)",
-                boxShadow: isHovered ? "0 16px 32px -12px rgba(35, 180, 224, 0.25)" : "none",
-              }}
-            >
-              
+            
+            <ScrollReveal key={c.name} delay={i * 90}>
               <div
-                className="absolute w-3 h-3 rotate-45 -top-1.5 left-8 transition-colors duration-200"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                className="rounded-2xl p-6 relative transition-transform duration-200 ease-out cursor-default"
                 style={{
                   background: t.card,
-                  borderLeft: `1px solid ${isHovered ? t.accent : t.border}`,
-                  borderTop: `1px solid ${isHovered ? t.accent : t.border}`,
+                  border: `1px solid ${isHovered ? t.accent : t.border}`,
+                  transform: isHovered ? "translateY(-4px)" : "translateY(0)",
+                  boxShadow: isHovered ? "0 16px 32px -12px rgba(0,0,0,0.25)" : "none",
                 }}
-              />
-              <p className="text-[15px] leading-relaxed" style={{ color: t.text }}>
-                "{c.quote}"
-              </p>
-              <div className="mt-4 text-sm font-medium" style={{ color: t.muted }}>
-                {c.name}
+              >
+                {}
+                <div
+                  className="absolute w-3 h-3 rotate-45 -top-1.5 left-8 transition-colors duration-200"
+                  style={{
+                    background: t.card,
+                    borderLeft: `1px solid ${isHovered ? t.accent : t.border}`,
+                    borderTop: `1px solid ${isHovered ? t.accent : t.border}`,
+                  }}
+                />
+                <p className="text-[15px] leading-relaxed" style={{ color: t.text }}>
+                  "{c.quote}"
+                </p>
+                <div className="mt-4 text-sm font-medium" style={{ color: t.muted }}>
+                  {c.name}
+                </div>
               </div>
-            </div>
+            </ScrollReveal>
           );
         })}
       </div>

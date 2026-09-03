@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ScrollReveal from "./ScrollReveal";
 
 const testimonials = [
   {
@@ -39,44 +40,47 @@ function Testimonials({ t }) {
 
   return (
     <section className="px-6 py-24 max-w-6xl mx-auto">
-      <div className="max-w-xl mb-14 mx-auto text-center">
-        <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight" style={{ color: t.text }}>
-          What changes after switching
-        </h2>
-        <p className="mt-3 text-lg" style={{ color: t.muted }}>
-          Real feedback from business owners who stopped juggling five apps at once.
-        </p>
-      </div>
+      <ScrollReveal>
+        <div className="max-w-xl mb-14 mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight" style={{ color: t.text }}>
+            What changes after switching
+          </h2>
+          <p className="mt-3 text-lg" style={{ color: t.muted }}>
+            Real feedback from business owners who stopped juggling five apps at once.
+          </p>
+        </div>
+      </ScrollReveal>
 
       <div className="grid sm:grid-cols-3 gap-5">
         {testimonials.map((r, i) => {
           const isHovered = hovered === i;
           return (
-            <div
-              key={r.name}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-              className="rounded-2xl p-6 flex flex-col transition-transform duration-200 ease-out cursor-default shadow-xl inset-shadow-sm inset-shadow-indigo-500"
-              style={{
-                background: t.card,
-                border: `1px solid ${isHovered ? t.accent : t.border}`,
-                transform: isHovered ? "translateY(-4px)" : "translateY(0)",
-                boxShadow: isHovered ? "0 16px 32px -12px rgba(19, 221, 221, 0.25)" : "none",
-              }}
-            >
-              <Stars count={r.rating} color={t.accent} />
-              <p className="mt-4 text-[15px] leading-relaxed flex-1" style={{ color: t.text }}>
-                "{r.quote}"
-              </p>
-              <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
-                <div className="text-sm font-medium" style={{ color: t.text }}>
-                  {r.name}
-                </div>
-                <div className="text-xs" style={{ color: t.muted }}>
-                  {r.role}
+            <ScrollReveal key={r.name} delay={i * 90}>
+              <div
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                className="rounded-2xl p-6 flex flex-col transition-transform duration-200 ease-out cursor-default"
+                style={{
+                  background: t.card,
+                  border: `1px solid ${isHovered ? t.accent : t.border}`,
+                  transform: isHovered ? "translateY(-4px)" : "translateY(0)",
+                  boxShadow: isHovered ? "0 16px 32px -12px rgba(0,0,0,0.25)" : "none",
+                }}
+              >
+                <Stars count={r.rating} color={t.accent} />
+                <p className="mt-4 text-[15px] leading-relaxed flex-1" style={{ color: t.text }}>
+                  "{r.quote}"
+                </p>
+                <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${t.border}` }}>
+                  <div className="text-sm font-medium" style={{ color: t.text }}>
+                    {r.name}
+                  </div>
+                  <div className="text-xs" style={{ color: t.muted }}>
+                    {r.role}
+                  </div>
                 </div>
               </div>
-            </div>
+            </ScrollReveal>
           );
         })}
       </div>
