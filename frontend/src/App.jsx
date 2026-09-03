@@ -1,17 +1,13 @@
 import { useState, useMemo } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './component/Navbar';
-import Hero from './component/Hero';
-import TrustBar from './component/TrustBar';
-import FeatureGrid from './component/FeatureGrid';
-import ProblemSection from './component/ProblemSection';
-import Testimonial from './component/Testimonial';
-import FinalCta from './component/FinalCta';
 import Footer from './component/Footer';
+import LandingPage from './component/LandingPage';
+import TermsOfService from './component/TermsOfService';
+import PrivacyPolicy from './component/PrivacyPolicy';
 
-// A few small doodle shapes, drawn centered near (0,0) so they can be
-// freely moved, rotated, and scaled without redrawing coordinates.
 const iconTemplates = [
-  `<path d="M-15 -10 h30 a6 6 0 0 1 6 6 v10 a6 6 0 0 1 -6 6 h-18 l-8 8 v-8 h-4 a6 6 0 0 1 -6 -6 v-10 a6 6 0 0 1 6 -6 z" />`,
+  `<path d="M-15 -10 h30 a6 6 0 0 1 6 6 v14 a6 6 0 0 1 -6 6 h-18 l-8 8 v-8 h-4 a6 6 0 0 1 -6 -6 v-14 a6 6 0 0 1 6 -6 z" />`,
   `<path d="M0 -10 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 z" />`,
   `<path d="M-10 8 c0 -8 6 -14 14 -14 4 -8 12 -13 20 -13 10 0 18 7 20 16 7 1 12 6 12 13 0 8 -6 14 -14 14 h-38 c-8 0 -14 -6 -14 -16 z" scale="0.4" />`,
   `<path d="M0 -8 l4 8 8 4 -8 4 -4 8 -4 -8 -8 -4 8 -4 z" />`,
@@ -31,11 +27,7 @@ function generateDoodleTile(color, size = 500, count = 26) {
       0
     )}) scale(${scale.toFixed(2)})">${icon}</g>`;
   }
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-      <g fill="none" stroke="${color}" stroke-width="1.4">${shapes}</g>
-    </svg>
-  `;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><g fill="none" stroke="${color}" stroke-width="1.4">${shapes}</g></svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
@@ -56,9 +48,6 @@ function App() {
       accentText: '#FFFFFF',
       border: 'rgba(20,32,26,0.10)',
       bubbleAi: '#EEF2ED',
-      // Used ONLY as a subtle full-bleed section tint, layered on top of
-      // the shared doodle background, so alternating sections read as
-      // distinct without needing a second doodle pattern of their own.
       sectionTint: 'rgba(20,32,26,0.03)',
     },
     dark: {
@@ -78,38 +67,31 @@ function App() {
   const t = dark ? themes.dark : themes.light;
 
   return (
-    <div
-      className="min-h-screen transition-colors duration-300"
-      style={{
-        background: dark ? t.bgGradient : t.bg,
-        backgroundImage: dark ? `${t.bgPattern}, ${t.bgGradient}` : `${t.bgPattern}`,
-        backgroundSize: '500px 500px, cover',
-        backgroundRepeat: 'repeat, no-repeat',
-      }}
-    >
-      <Navbar t={t} dark={dark} setDark={setDark} />
+    <BrowserRouter>
+      <div
+        className="min-h-screen transition-colors duration-300"
+        style={{
+          background: dark ? t.bgGradient : t.bg,
+          backgroundImage: dark ? `${t.bgPattern}, ${t.bgGradient}` : `${t.bgPattern}`,
+          backgroundSize: '500px 500px, cover',
+          backgroundRepeat: 'repeat, no-repeat',
+        }}
+      >
+        <Navbar t={t} dark={dark} setDark={setDark} />
 
-      {/* No tint — this is the "base" band the page starts on. */}
-      <Hero t={t} />
-      <TrustBar t={t} />
+        {/* Routes swaps out ONLY the page content — Navbar above and
+            Footer below stay mounted across every page, so the theme
+            toggle and nav links work identically no matter which page
+            you're on. */}
+        <Routes>
+          <Route path="/" element={<LandingPage t={t} />} />
+          <Route path="/terms" element={<TermsOfService t={t} />} />
+          <Route path="/privacy" element={<PrivacyPolicy t={t} />} />
+        </Routes>
 
-      {/* Tinted band #1 — a full-width wash of sectionTint sits between
-          the shared doodle background and the section's own content,
-          just enough to read as "a new section started" on scroll. */}
-      <div style={{ background: t.sectionTint }}>
-        <FeatureGrid t={t} />
+        <Footer t={t} />
       </div>
-
-      {/* Base band again */}
-      <ProblemSection t={t} />
-
-      {/* Tinted band #2 */}
-      <div style={{ background: t.sectionTint }}>
-        <Testimonial t={t} />
-      </div>
-      <FinalCta t={t} />
-      <Footer t={t} />
-    </div>
+    </BrowserRouter>
   );
 }
 
