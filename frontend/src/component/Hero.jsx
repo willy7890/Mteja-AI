@@ -1,9 +1,5 @@
 import PlatformHub from './PlatformHub';
 
-// Short feature tags that float quietly behind the hub — decoration that
-// reinforces the pitch at a glance, not something meant to be "read" like
-// body copy. Position is a percentage of the hero container so it holds
-// up reasonably across screen sizes.
 const featureTags = [
   { text: 'Instant replies', top: '12%', left: '8%', delay: '0s' },
   { text: '24/7 AI agent', top: '68%', left: '10%', delay: '0.6s' },
@@ -47,8 +43,7 @@ function Hero({ t }) {
         </div>
       </div>
 
-      {/* Floating feature tags — sit BEHIND the hub (z-index 0 vs hub's
-          higher stacking context), purely decorative reinforcement. */}
+      {}
       <div className="absolute inset-0 pointer-events-none hidden md:block" style={{ zIndex: 0 }}>
         {featureTags.map((tag) => (
           <span
