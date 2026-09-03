@@ -1,3 +1,11 @@
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+}
 @import "tailwindcss";
 @tailwind base;
 @tailwind components;
