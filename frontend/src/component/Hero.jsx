@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import PlatformHub from './PlatformHub';
+
 
 const featureTags = [
   { text: 'Instant replies', top: '12%', left: '8%', delay: '0s' },
@@ -8,6 +10,10 @@ const featureTags = [
 ];
 
 function Hero({ t }) {
+  
+  const [demoTrigger, setDemoTrigger] = useState(0);
+  const [secondaryHover, setSecondaryHover] = useState(false);
+
   return (
     <section className="relative pt-32 pb-20 px-6 overflow-hidden">
       {/* Headline block */}
@@ -35,15 +41,24 @@ function Hero({ t }) {
             Start free trial
           </button>
           <button
-            className="px-6 py-3 rounded-full font-medium"
-            style={{ border: `1px solid ${t.border}`, color: t.text }}
+            onClick={() => setDemoTrigger((n) => n + 1)}
+            onMouseEnter={() => setSecondaryHover(true)}
+            onMouseLeave={() => setSecondaryHover(false)}
+            className="px-6 py-3 rounded-full font-medium transition-colors duration-150"
+            style={{
+              border: `1px solid ${t.border}`,
+              color: t.text,
+            
+              background: secondaryHover ? `${t.text}0D` : 'transparent',
+            }}
           >
             See it reply live
           </button>
         </div>
       </div>
 
-      {}
+      {/* Floating feature tags — sit BEHIND the hub (z-index 0 vs hub's
+          higher stacking context), purely decorative reinforcement. */}
       <div className="absolute inset-0 pointer-events-none hidden md:block" style={{ zIndex: 0 }}>
         {featureTags.map((tag) => (
           <span
@@ -66,7 +81,7 @@ function Hero({ t }) {
 
       {/* Hub sits above the floating tags */}
       <div className="relative mt-6" style={{ zIndex: 1 }}>
-        <PlatformHub t={t} />
+        <PlatformHub t={t} autoPlayTrigger={demoTrigger} />
       </div>
 
       <style>{`

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MessageCircle, Mail, Camera, Phone, Send, MessageSquare } from "lucide-react";
 
 const platforms = [
@@ -79,10 +79,10 @@ function useHubSize() {
   return size;
 }
 
-function PlatformHub({ t }) {
+function PlatformHub({ t, autoPlayTrigger = 0 }) {
   const SIZE = useHubSize();
   const CENTER = SIZE / 2;
-  const RADIUS = SIZE * 0.357; // matches the original 150/420 ratio
+  const RADIUS = SIZE * 0.357; 
 
   const [drawn, setDrawn] = useState(false);
   const [hovered, setHovered] = useState(null);
@@ -108,8 +108,37 @@ function PlatformHub({ t }) {
     return () => clearTimeout(timer);
   }, [t, SIZE]);
 
-  // Drives the center hub's mini chat: only runs while hovered, resets to
-  // the start whenever the mouse leaves so it always replays from message 1.
+ 
+  const timersRef = useRef([]);
+  const hasRunOnce = useRef(false);
+
+  useEffect(() => {
+    if (autoPlayTrigger === 0) return;
+    if (!hasRunOnce.current) {
+      hasRunOnce.current = true;
+    }
+
+    
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+
+    setHovered(null);
+    setCenterHovered(false);
+
+    const perSatellite = 1300;
+    platforms.forEach((_, i) => {
+      timersRef.current.push(setTimeout(() => setHovered(i), i * perSatellite));
+    });
+
+    const afterSatellites = platforms.length * perSatellite;
+    timersRef.current.push(setTimeout(() => setHovered(null), afterSatellites));
+    timersRef.current.push(setTimeout(() => setCenterHovered(true), afterSatellites + 400));
+    timersRef.current.push(setTimeout(() => setCenterHovered(false), afterSatellites + 4000));
+
+    return () => timersRef.current.forEach(clearTimeout);
+  }, [autoPlayTrigger]);
+
+  
   useEffect(() => {
     if (!centerHovered) {
       setHubVisible(0);
