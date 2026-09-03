@@ -7,7 +7,8 @@ import ProblemSection from './component/ProblemSection';
 import Testimonial from './component/Testimonial';
 import Footer from './component/Footer';
 
-
+// A few small doodle shapes, drawn centered near (0,0) so they can be
+// freely moved, rotated, and scaled without redrawing coordinates.
 const iconTemplates = [
   `<path d="M-15 -10 h30 a6 6 0 0 1 6 6 v10 a6 6 0 0 1 -6 6 h-18 l-8 8 v-8 h-4 a6 6 0 0 1 -6 -6 v-10 a6 6 0 0 1 6 -6 z" />`,
   `<path d="M0 -10 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 z" />`,
@@ -16,7 +17,6 @@ const iconTemplates = [
   `<path d="M-8 0 l6 6 12 -14" />`,
   `<circle cx="0" cy="0" r="6" />`,
 ];
-
 
 function generateDoodleTile(color, size = 500, count = 26) {
   let shapes = '';
@@ -30,12 +30,9 @@ function generateDoodleTile(color, size = 500, count = 26) {
       0
     )}) scale(${scale.toFixed(2)})">${icon}</g>`;
   }
-
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-      <g fill="none" stroke="${color}" stroke-width="1.4">
-        ${shapes}
-      </g>
+      <g fill="none" stroke="${color}" stroke-width="1.4">${shapes}</g>
     </svg>
   `;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -58,6 +55,10 @@ function App() {
       accentText: '#FFFFFF',
       border: 'rgba(20,32,26,0.10)',
       bubbleAi: '#EEF2ED',
+      // Used ONLY as a subtle full-bleed section tint, layered on top of
+      // the shared doodle background, so alternating sections read as
+      // distinct without needing a second doodle pattern of their own.
+      sectionTint: 'rgba(20,32,26,0.03)',
     },
     dark: {
       bgGradient: 'linear-gradient(to bottom, #0B1220 0%, #0F2A3D 55%, #123A3A 100%)',
@@ -69,6 +70,7 @@ function App() {
       accentText: '#0B1220',
       border: 'rgba(242,240,232,0.12)',
       bubbleAi: '#1B2836',
+      sectionTint: 'rgba(79,209,197,0.05)',
     },
   };
 
@@ -85,11 +87,26 @@ function App() {
       }}
     >
       <Navbar t={t} dark={dark} setDark={setDark} />
+
+      {/* No tint — this is the "base" band the page starts on. */}
       <Hero t={t} />
       <TrustBar t={t} />
-      <FeatureGrid t={t} />
+
+      {/* Tinted band #1 — a full-width wash of sectionTint sits between
+          the shared doodle background and the section's own content,
+          just enough to read as "a new section started" on scroll. */}
+      <div style={{ background: t.sectionTint }}>
+        <FeatureGrid t={t} />
+      </div>
+
+      {/* Base band again */}
       <ProblemSection t={t} />
-      <Testimonial t={t} />
+
+      {/* Tinted band #2 */}
+      <div style={{ background: t.sectionTint }}>
+        <Testimonial t={t} />
+      </div>
+
       <Footer t={t} />
     </div>
   );
