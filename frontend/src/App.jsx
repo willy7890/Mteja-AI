@@ -5,6 +5,7 @@ import TrustBar from './component/TrustBar';
 import FeatureGrid from './component/FeatureGrid';
 import ProblemSection from './component/ProblemSection';
 import Testimonial from './component/Testimonial';
+import FinalCta from './component/FinalCta';
 import Footer from './component/Footer';
 
 // A few small doodle shapes, drawn centered near (0,0) so they can be
