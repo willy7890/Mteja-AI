@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import Navbar from './component/Navbar';
 import Hero from './component/Hero';
 import TrustBar from './component/TrustBar';
+import FeatureGrid from './component/FeatureGrid';
 import ProblemSection from './component/ProblemSection';
 import Testimonial from './component/Testimonial';
 import Footer from './component/Footer';
