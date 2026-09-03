@@ -24,7 +24,7 @@ function Hero({ t }) {
           className="mt-5 text-lg max-w-lg mx-auto headline-line"
           style={{ color: t.muted, animationDelay: '0.25s' }}
         >
-          MtejaAI reads WhatsApp, Instagram, email, and calls — and replies
+          MtejaAI reads WhatsApp, Instagram, email, and calls and replies
           before your customer looks elsewhere.
         </p>
         <div className="mt-7 flex justify-center gap-3 headline-line" style={{ animationDelay: '0.45s' }}>
