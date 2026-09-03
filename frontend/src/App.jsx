@@ -2,9 +2,9 @@ import { useState, useMemo } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './component/Navbar';
 import Footer from './component/Footer';
-import LandingPage from './component/LandingPage';
-import TermsOfService from './component/TermsOfService';
-import PrivacyPolicy from './component/PrivacyPolicy';
+import LandingPage from './Pages/LandingPage';
+import TermsOfService from './Pages/TermsOfService';
+import PrivacyPolicy from './Pages/PrivacyPolicy';
 
 const iconTemplates = [
   `<path d="M-15 -10 h30 a6 6 0 0 1 6 6 v14 a6 6 0 0 1 -6 6 h-18 l-8 8 v-8 h-4 a6 6 0 0 1 -6 -6 v-14 a6 6 0 0 1 6 -6 z" />`,

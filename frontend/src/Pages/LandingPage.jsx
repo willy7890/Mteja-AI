@@ -1,9 +1,9 @@
-import Hero from './Hero';
-import TrustBar from './TrustBar';
-import FeatureGrid from './FeatureGrid';
-import ProblemSection from './ProblemSection';
-import Testimonial from './Testimonial';
-import FinalCta from './FinalCta';
+import Hero from '../component/Hero';
+import TrustBar from '../component/TrustBar';
+import FeatureGrid from '../component/FeatureGrid';
+import ProblemSection from '../component/ProblemSection';
+import Testimonial from '../component/Testimonial';
+import FinalCta from '../component/FinalCta';
 
 function LandingPage({ t }) {
   return (
