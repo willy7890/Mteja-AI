@@ -1,10 +1,7 @@
 
 const companies = [
   { type: 'image', src: '/signi-ai.png', name: 'SigniAI' },
-  { type: 'text', name: 'Blue Harbor' },
-  { type: 'text', name: 'Vertex Retail' },
-  { type: 'text', name: 'Cedarline' },
-  { type: 'text', name: 'Meridian Co.' },
+  
 ];
 
 function TrustBar({ t }) {
