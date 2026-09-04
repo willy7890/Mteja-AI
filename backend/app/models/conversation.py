@@ -17,6 +17,5 @@ class Conversation(Base):
 	mode: Mapped[str] = mapped_column(String(30), default="ai", nullable=False)
 	assigned_to: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 	created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-	updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True),server_default=func.now(),onupdate=func.now())
-    
+
 	messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
