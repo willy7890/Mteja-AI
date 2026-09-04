@@ -7,7 +7,7 @@ import LoginPage from './Pages/LoginPage';
 import TermsOfService from './Pages/TermsOfService';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
 import DashboardLayout from './component/DashboardLayout';
-import DashboardPage from './pages/DashboardPage';
+import DashboardPage from './Pages/DashboardPage';
 import ComingSoon from './component/ComingSoon';
 
 const iconTemplates = [
