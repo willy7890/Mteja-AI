@@ -33,9 +33,7 @@ function NavPill({ href, children, t, dark, onClick }) {
     },
   };
 
-  // THIS branch was missing entirely in the previous file — every link
-  // rendered as a plain <a>, so "/login" behaved like a dead anchor
-  // instead of a real route change.
+ 
   if (href.startsWith('/')) {
     return (
       <Link to={href} {...sharedProps}>
@@ -56,8 +54,8 @@ function Navbar({ t, dark, setDark }) {
   const ctaRef = useRef(null);
 
   const Navlinks = [
-    { name: 'Home', href: '#HomePage' },
-    { name: 'About', href: '#AboutPage' },
+    { name: 'Home', href: '/' },
+    { name: 'About', href: '/#AboutPage' },
     // THIS was the actual bug — still '#LoginPage', never updated to a
     // real route, so NavPill (even once fixed above) had nothing to
     // detect as "this is a real path."
