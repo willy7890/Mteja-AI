@@ -6,8 +6,11 @@ from app.core.database import engine, Base
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.customer import Customer
-
+from app.models import customer, organization, user, activity_log, conversation, message  
 from app.api.router import api_router
+from app.routes.chat import router as chat_router
+...
+
 
 #add changes
 app = FastAPI(
@@ -47,3 +50,7 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "ok"}  
+
+
+
+app.include_router(chat_router, tags=["chat"])
