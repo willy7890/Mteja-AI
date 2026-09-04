@@ -1,12 +1,10 @@
 import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
-import { Link } from 'react-router-dom';
-
 
 function NavPill({ href, children, t, dark, onClick }) {
   const ref = useRef(null);
-  
   const [isHover, setIsHover] = useState(false);
 
   const glow = dark
@@ -19,23 +17,33 @@ function NavPill({ href, children, t, dark, onClick }) {
     ref.current.style.setProperty('--y', `${e.clientY - rect.top}px`);
   }
 
+  const sharedProps = {
+    ref,
+    onMouseMove: handleMouseMove,
+    onMouseEnter: () => setIsHover(true),
+    onMouseLeave: () => setIsHover(false),
+    onClick,
+    className: 'px-4 py-1.5 rounded-full text-sm transition-colors duration-150',
+    style: {
+      border: `1px solid ${t.border}`,
+      color: t.text,
+      backgroundImage: isHover ? glow : 'none',
+      '--x': '50%',
+      '--y': '50%',
+    },
+  };
+
+ 
+  if (href.startsWith('/')) {
+    return (
+      <Link to={href} {...sharedProps}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
-    <a
-      ref={ref}
-      href={href}
-      onClick={onClick}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHover(true)}
-      onMouseLeave={() => setIsHover(false)}
-      className="px-4 py-1.5 rounded-full text-sm transition-colors duration-150"
-      style={{
-        border: `1px solid ${t.border}`,
-        color: t.text,
-        backgroundImage: isHover ? glow : 'none',
-        '--x': '50%',
-        '--y': '50%',
-      }}
-    >
+    <a href={href} {...sharedProps}>
       {children}
     </a>
   );
@@ -48,7 +56,8 @@ function Navbar({ t, dark, setDark }) {
   const Navlinks = [
     { name: 'Home', href: '#HomePage' },
     { name: 'About', href: '#AboutPage' },
-    { name: 'Login', href: '#LoginPage' },
+  
+    { name: 'Login', href: '/login' },
     { name: 'Request Demo', href: '#DemoPage' },
   ];
 
@@ -79,7 +88,7 @@ function Navbar({ t, dark, setDark }) {
             </NavPill>
           ))}
 
-          <ThemeToggle dark={dark} setDark={setDark} />
+          <ThemeToggle t={t} dark={dark} setDark={setDark} />
 
           <button
             ref={ctaRef}

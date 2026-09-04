@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './component/Navbar';
 import Footer from './component/Footer';
 import LandingPage from './Pages/LandingPage';
+import LoginPage from './Pages/LoginPage';
 import TermsOfService from './Pages/TermsOfService';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
 
@@ -49,8 +50,17 @@ function App() {
       border: 'rgba(20,32,26,0.10)',
       bubbleAi: '#EEF2ED',
       sectionTint: 'rgba(20,32,26,0.03)',
+      // Subtle nested-panel background — one step darker than `card`
+      // (white), used for things sitting INSIDE a card (like a stat box
+      // within a bigger dashboard card). New, needed by the dashboard.
+      surface: 'rgba(20,32,26,0.035)',
     },
     dark: {
+      // A flat fallback color, same starting shade as bgGradient's top —
+      // some elements (dashboard inputs, solid fills) need one solid
+      // color, not a gradient, and dark theme previously had no plain
+      // `bg` at all.
+      bg: '#0B1220',
       bgGradient: 'linear-gradient(to bottom, #0B1220 0%, #0F2A3D 55%, #123A3A 100%)',
       bgPattern: darkPattern,
       text: '#F2F0E8',
@@ -61,6 +71,7 @@ function App() {
       border: 'rgba(242,240,232,0.12)',
       bubbleAi: '#1B2836',
       sectionTint: 'rgba(79,209,197,0.05)',
+      surface: 'rgba(242,240,232,0.04)',
     },
   };
 
@@ -79,12 +90,9 @@ function App() {
       >
         <Navbar t={t} dark={dark} setDark={setDark} />
 
-        {/* Routes swaps out ONLY the page content — Navbar above and
-            Footer below stay mounted across every page, so the theme
-            toggle and nav links work identically no matter which page
-            you're on. */}
         <Routes>
           <Route path="/" element={<LandingPage t={t} />} />
+          <Route path="/login" element={<LoginPage t={t} />} />
           <Route path="/terms" element={<TermsOfService t={t} />} />
           <Route path="/privacy" element={<PrivacyPolicy t={t} />} />
         </Routes>
