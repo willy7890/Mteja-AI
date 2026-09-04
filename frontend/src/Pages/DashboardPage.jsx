@@ -4,7 +4,7 @@ import {
   MessageSquare,
   Sparkles,
   ArrowUpRight,
-  Instagram,
+  Camera,
   Mail,
   PhoneCall,
   Zap,
