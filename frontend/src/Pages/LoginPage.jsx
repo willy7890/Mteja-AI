@@ -91,7 +91,7 @@ function LoginPage({ t }) {
             className="text-3xl font-semibold tracking-tight leading-tight mb-4"
             style={{ color: t.accentText }}
           >
-            Every customer message, answered — before they look elsewhere.
+            Every customer message, answered before they look elsewhere.
           </h2>
           <p className="text-sm opacity-80" style={{ color: t.accentText }}>
             Log in to see your unified inbox across WhatsApp, Instagram, email, and calls.
