@@ -92,7 +92,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<LandingPage t={t} />} />
-          <Route path="/login" element={<LoginPage t={t} />} />
+          <Route path="/Login" element={<LoginPage t={t} />} />
           <Route path="/terms" element={<TermsOfService t={t} />} />
           <Route path="/privacy" element={<PrivacyPolicy t={t} />} />
         </Routes>

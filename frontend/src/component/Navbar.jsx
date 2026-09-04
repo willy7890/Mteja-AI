@@ -57,7 +57,7 @@ function Navbar({ t, dark, setDark }) {
     { name: 'Home', href: '#HomePage' },
     { name: 'About', href: '#AboutPage' },
   
-    { name: 'Login', href: '/login' },
+    { name: 'Login', href: '/Login' },
     { name: 'Request Demo', href: '#DemoPage' },
   ];
 
