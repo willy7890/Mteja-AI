@@ -2,11 +2,11 @@ import { useState, useMemo } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PublicLayout from './component/PublicLayout';
 import DashboardLayout from './component/DashboardLayout';
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import TermsOfService from './pages/TermsOfService';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import DashboardPage from './pages/DashboardPage';
+import LandingPage from './Pages/LandingPage';
+import LoginPage from './Pages/LoginPage';
+import TermsOfService from './Pages/TermsOfService';
+import PrivacyPolicy from './Pages/PrivacyPolicy';
+import DashboardPage from './Pages/DashboardPage';
 import ComingSoon from './component/ComingSoon';
 
 const iconTemplates = [
