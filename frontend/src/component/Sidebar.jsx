@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Inbox, Users, Bot, Zap, BarChart3,
-  MessageSquare, Instagram, Mail, PhoneCall, UserCheck,
+  MessageSquare, Camera, Mail, PhoneCall, UserCheck,
   Settings, CreditCard, ChevronRight,
 } from "lucide-react";
 
@@ -28,7 +28,7 @@ export const Sidebar = ({
 
   const channelItems = [
     { channel: "whatsapp", label: "WhatsApp", icon: MessageSquare, count: "Active", color: "#25D366" },
-    { channel: "instagram", label: "Instagram", icon: Instagram, count: "1 new", color: "#E4405F" },
+    { channel: "instagram", label: "Instagram", icon: Camera, count: "1 new", color: "#E4405F" },
     { channel: "email", label: "Email", icon: Mail, count: "Synced", color: "#4285F4" },
     { channel: "call", label: "Calls & Voice", icon: PhoneCall, count: "1 voice", color: "#287A59" },
   ];
