@@ -13,6 +13,7 @@ class Message(Base):
 	conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id"), nullable=False)
 	content: Mapped[str] = mapped_column(Text, nullable=False)
 	sender_type: Mapped[str] = mapped_column(String(30), nullable=False)
+	sender_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
 	created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 	conversation = relationship("Conversation", back_populates="messages")
