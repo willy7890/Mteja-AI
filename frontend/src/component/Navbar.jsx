@@ -33,7 +33,9 @@ function NavPill({ href, children, t, dark, onClick }) {
     },
   };
 
- 
+  // THIS branch was missing entirely in the previous file — every link
+  // rendered as a plain <a>, so "/login" behaved like a dead anchor
+  // instead of a real route change.
   if (href.startsWith('/')) {
     return (
       <Link to={href} {...sharedProps}>
@@ -56,8 +58,10 @@ function Navbar({ t, dark, setDark }) {
   const Navlinks = [
     { name: 'Home', href: '#HomePage' },
     { name: 'About', href: '#AboutPage' },
-  
-    { name: 'Login', href: '/Login' },
+    // THIS was the actual bug — still '#LoginPage', never updated to a
+    // real route, so NavPill (even once fixed above) had nothing to
+    // detect as "this is a real path."
+    { name: 'Login', href: '/login' },
     { name: 'Request Demo', href: '#DemoPage' },
   ];
 
@@ -90,14 +94,15 @@ function Navbar({ t, dark, setDark }) {
 
           <ThemeToggle t={t} dark={dark} setDark={setDark} />
 
-          <button
+          <Link
             ref={ctaRef}
+            to="/signup"
             onMouseMove={handleCtaMove}
             className="px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
             style={{ background: ctaGradient, '--x': '50%', '--y': '50%' }}
           >
             Get started
-          </button>
+          </Link>
         </div>
 
         <button
