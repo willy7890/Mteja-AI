@@ -42,7 +42,7 @@ function DashboardPage({ t, conversations, recentConversations }) {
   const getChannelIcon = (ch) => {
     switch (ch) {
       case 'whatsapp': return <MessageSquare size={14} color="#25D366" />;
-      case 'instagram': return <Instagram size={14} color="#E4405F" />;
+      case 'instagram': return <Camera size={14} color="#E4405F" />;
       case 'email': return <Mail size={14} color="#4285F4" />;
       case 'call': return <PhoneCall size={14} color="#287A59" />;
       default: return <MessageSquare size={14} color={t.accent} />;
@@ -351,7 +351,7 @@ function DashboardPage({ t, conversations, recentConversations }) {
           <div className="space-y-3.5">
             {[
               { icon: <MessageSquare size={16} color="#25D366" />, bg: 'rgba(37,211,102,0.1)', name: 'WhatsApp Business', sub: '892 chats · 99.2% rate', pct: '69.5%' },
-              { icon: <Instagram size={16} color="#E4405F" />, bg: 'rgba(228,64,95,0.1)', name: 'Instagram Direct', sub: '244 chats · 97.4% rate', pct: '19.0%' },
+              { icon: <Camera size={16} color="#E4405F" />, bg: 'rgba(228,64,95,0.1)', name: 'Instagram Direct', sub: '244 chats · 97.4% rate', pct: '19.0%' },
               { icon: <Mail size={16} color="#4285F4" />, bg: 'rgba(66,133,244,0.1)', name: 'Corporate Email', sub: '86 threads · 96.1% rate', pct: '6.7%' },
               { icon: <PhoneCall size={16} color="#287A59" />, bg: 'rgba(40,122,89,0.1)', name: 'Phone & Voice', sub: '62 calls · 100% transcribed', pct: '4.8%' },
             ].map((row) => (
