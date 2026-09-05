@@ -6,7 +6,7 @@ from sqlalchemy import select, and_
 from fastapi import HTTPException, status
 
 from app.models.otp import OTPCode, OTPChannel, OTPPurpose
-from app.schemas.otp import SendOTPRequest, VerifyOTPRequest
+from app.services.email_service import EmailService
 
 
 class OTPService:
@@ -25,6 +25,7 @@ class OTPService:
         user_id: int | None = None,
         expiry_minutes: int = 10,
     ) -> OTPCode:
+        # Invalidate previous unused OTPs
         query = select(OTPCode).where(
             and_(
                 OTPCode.purpose == purpose,
@@ -55,6 +56,16 @@ class OTPService:
         db.add(otp)
         await db.commit()
         await db.refresh(otp)
+
+        if channel == OTPChannel.EMAIL and email:
+            print(f"Trying to send email to {email} with OTP {otp.code}")
+            success = await EmailService.send_otp_email(
+                to=email,
+                otp_code=otp.code,
+                purpose=purpose.value
+            )
+            print(f"Email send result: {success}")
+
         return otp
 
     @staticmethod
@@ -111,4 +122,5 @@ class OTPService:
         otp.used_at = datetime.utcnow()
         await db.commit()
         await db.refresh(otp)
+
         return otp
