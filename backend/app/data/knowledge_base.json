@@ -1,0 +1,12 @@
+[
+  {
+    "category": "products",
+    "title": "Product or Service Name",
+    "content": "Detailed description, pricing, or instructions that the AI agent will reference."
+  },
+  {
+    "category": "faq",
+    "title": "Common Question Title",
+    "content": "The exact answer or policy the agent should communicate to the customer."
+  }
+]
