@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,14 +8,15 @@ from app.core.database import engine, Base
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.customer import Customer
-from app.models import customer, organization, user, activity_log, conversation, message  
+from app.models.telegram import TelegramLink, TelegramSession
+from app.models import customer, organization, user, activity_log, conversation, message
 from app.api.router import api_router
 from app.routes.chat import router as chat_router
 from app.api.v1 import webhooks
-...
+from app.services.telegram_service import build_telegram_app
 
+logger = logging.getLogger(__name__)
 
-#add changes
 app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
@@ -21,11 +24,34 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+telegram_app = build_telegram_app()
+telegram_status = {"verified": False, "username": None, "polling": False}
+
 
 @app.on_event("startup")
 async def on_startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    await telegram_app.initialize()
+    bot = await telegram_app.bot.get_me()
+    telegram_status.update(
+        verified=True,
+        username=bot.username,
+    )
+    await telegram_app.start()
+    await telegram_app.updater.start_polling()
+    telegram_status["polling"] = True
+    logger.info("Telegram bot started (polling) as @%s", bot.username)
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    telegram_status["polling"] = False
+    await telegram_app.updater.stop()
+    await telegram_app.stop()
+    await telegram_app.shutdown()
+    logger.info("Telegram bot stopped")
 
 
 app.add_middleware(
@@ -50,8 +76,10 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}  
-
+    return {
+        "status": "ok",
+        "telegram": telegram_status,
+    }
 
 
 app.include_router(chat_router, tags=["chat"])
