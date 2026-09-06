@@ -1,6 +1,7 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
 
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -11,6 +12,7 @@ from app.models.telegram import TelegramLink, TelegramSession
 from app.models import customer, organization, user, activity_log, conversation, message
 from app.api.router import api_router
 from app.routes.chat import router as chat_router
+from app.api.v1 import webhooks
 from app.services.telegram_service import build_telegram_app
 
 logger = logging.getLogger(__name__)
@@ -23,12 +25,7 @@ app = FastAPI(
 )
 
 telegram_app = build_telegram_app()
-telegram_status = {
-    "configured": bool(settings.TELEGRAM_BOT_TOKEN),
-    "verified": False,
-    "polling": False,
-    "username": None,
-}
+telegram_status = {"verified": False, "username": None, "polling": False}
 
 
 @app.on_event("startup")
@@ -86,3 +83,5 @@ async def health():
 
 
 app.include_router(chat_router, tags=["chat"])
+
+app.include_router(webhooks.router, prefix="/api/v1")
