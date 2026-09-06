@@ -9,6 +9,7 @@ from app.models.customer import Customer
 from app.models import customer, organization, user, activity_log, conversation, message  
 from app.api.router import api_router
 from app.routes.chat import router as chat_router
+from app.api.v1 import webhooks
 ...
 
 
@@ -54,3 +55,5 @@ async def health():
 
 
 app.include_router(chat_router, tags=["chat"])
+
+app.include_router(webhooks.router, prefix="/api/v1")
