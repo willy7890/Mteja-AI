@@ -1,22 +1,22 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
-
+import { apiPostForm } from '../api/Client';
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function LoginPage({ t }) {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState(null);
 
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const inputStyle = (fieldName, hasError) => ({
     background: t.bg,
@@ -37,34 +37,32 @@ function LoginPage({ t }) {
     return next;
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setSubmitError('');
+
     const foundErrors = validate();
     setErrors(foundErrors);
     if (Object.keys(foundErrors).length > 0) return;
 
     setIsSubmitting(true);
-    setSubmitted(false);
 
-    // ── INTEGRATION POINT ──────────────────────────────────────────────
-    // This is where the real API call goes once the integration branch
-    // is ready. Replace this setTimeout block with something like:
-    //
-    //   const res = await fetch('https://your-api.com/login', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ email, password }),
-    //   });
-    //   const data = await res.json();
-    //   // store data.token, redirect to dashboard, handle failure, etc.
-    //
-    // The setTimeout below just fakes a network delay so the loading
-    // state is visible and testable right now, before that code exists.
-    setTimeout(() => {
+    try {
+      
+      const data = await apiPostForm('/api/v1/auth/login', {
+        username: email,
+        password,
+      });
+
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+
+      navigate('/dashboard');
+    } catch (err) {
+      setSubmitError(err.message || 'Login failed. Please try again.');
+    } finally {
       setIsSubmitting(false);
-      setSubmitted(true);
-      console.log('Login form submitted (no backend wired yet):', { email, password });
-    }, 1200);
+    }
   }
 
   return (
@@ -91,7 +89,7 @@ function LoginPage({ t }) {
             className="text-3xl font-semibold tracking-tight leading-tight mb-4"
             style={{ color: t.accentText }}
           >
-            Every customer message, answered before they look elsewhere.
+            Every customer message, answered — before they look elsewhere.
           </h2>
           <p className="text-sm opacity-80" style={{ color: t.accentText }}>
             Log in to see your unified inbox across WhatsApp, Instagram, email, and calls.
@@ -117,13 +115,12 @@ function LoginPage({ t }) {
             Log in to your MtejaAI account.
           </p>
 
-          {submitted && (
+          {submitError && (
             <div
               className="mb-5 px-4 py-3 rounded-xl text-sm"
-              style={{ background: `${t.accent}1A`, color: t.accent }}
+              style={{ background: 'rgba(229,72,77,0.1)', color: '#E5484D' }}
             >
-              Form validated and submitted — no backend connected yet, so nothing
-              actually logged you in. Check the browser console for the captured values.
+              {submitError}
             </div>
           )}
 
