@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, Loader2, Check } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Mail, Lock, User, Building2, Loader2, Check } from 'lucide-react';
+import { apiPost } from '../api/client';
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function SignupPage({ t }) {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState(null);
 
   const [name, setName] = useState('');
+  const [organizationName, setOrganizationName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,7 +21,7 @@ function SignupPage({ t }) {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const inputStyle = (fieldName, hasError) => ({
     background: t.bg,
@@ -31,6 +34,7 @@ function SignupPage({ t }) {
   function validate() {
     const next = {};
     if (!name.trim()) next.name = 'Name is required.';
+    if (!organizationName.trim()) next.organizationName = 'Business name is required.';
 
     if (!email.trim()) next.email = 'Email is required.';
     else if (!isValidEmail(email)) next.email = 'Enter a valid email address.';
@@ -45,23 +49,34 @@ function SignupPage({ t }) {
     return next;
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setSubmitError('');
+
     const foundErrors = validate();
     setErrors(foundErrors);
     if (Object.keys(foundErrors).length > 0) return;
 
     setIsSubmitting(true);
-    setSubmitted(false);
 
-    // INTEGRATION POINT — replace with a real signup API call once the
-    // integration branch is ready:
-    //   fetch('https://your-api.com/signup', { method: 'POST', ... })
-    setTimeout(() => {
+    try {
+      // The register endpoint returns the created user record, NOT an
+      // auth token — so there's no auto-login here. The user has to log
+      // in separately right after, which is why we redirect to /login
+      // instead of a dashboard.
+      await apiPost('/api/v1/auth/register', {
+        email,
+        full_name: name,
+        password,
+        organization_name: organizationName,
+      });
+
+      navigate('/login', { state: { justSignedUp: true } });
+    } catch (err) {
+      setSubmitError(err.message || 'Something went wrong. Please try again.');
+    } finally {
       setIsSubmitting(false);
-      setSubmitted(true);
-      console.log('Signup form submitted (no backend wired yet):', { name, email, password });
-    }, 1200);
+    }
   }
 
   return (
@@ -91,7 +106,7 @@ function SignupPage({ t }) {
             Set up your unified inbox in under five minutes.
           </h2>
           <p className="text-sm opacity-80" style={{ color: t.accentText }}>
-            Connect WhatsApp, Instagram, email, and calls MtejaAI starts
+            Connect WhatsApp, Instagram, email, and calls — MtejaAI starts
             replying to customers the moment you're done.
           </p>
         </div>
@@ -120,13 +135,12 @@ function SignupPage({ t }) {
             Start your free 14-day trial. No credit card required.
           </p>
 
-          {submitted && (
+          {submitError && (
             <div
               className="mb-5 px-4 py-3 rounded-xl text-sm"
-              style={{ background: `${t.accent}1A`, color: t.accent }}
+              style={{ background: 'rgba(229,72,77,0.1)', color: '#E5484D' }}
             >
-              Form validated and submitted no backend connected yet, so no
-              account was actually created. Check the console for the captured values.
+              {submitError}
             </div>
           )}
 
@@ -149,6 +163,26 @@ function SignupPage({ t }) {
                 />
               </div>
               {errors.name && <p className="text-xs mt-1.5" style={{ color: '#E5484D' }}>{errors.name}</p>}
+            </div>
+
+            <div>
+              <label className="text-xs font-medium block mb-1.5" style={{ color: t.muted }}>
+                Business name
+              </label>
+              <div className="relative">
+                <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: t.muted }} />
+                <input
+                  type="text"
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  placeholder="Amina's Boutique"
+                  onFocus={() => setFocused('organizationName')}
+                  onBlur={() => setFocused(null)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
+                  style={inputStyle('organizationName', !!errors.organizationName)}
+                />
+              </div>
+              {errors.organizationName && <p className="text-xs mt-1.5" style={{ color: '#E5484D' }}>{errors.organizationName}</p>}
             </div>
 
             <div>
@@ -253,25 +287,6 @@ function SignupPage({ t }) {
               {isSubmitting ? 'Creating account…' : 'Create account'}
             </button>
           </form>
-
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px" style={{ background: t.border }} />
-            <span className="text-xs" style={{ color: t.muted }}>or continue with</span>
-            <div className="flex-1 h-px" style={{ background: t.border }} />
-          </div>
-
-          <button
-            className="w-full py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors"
-            style={{ border: `1px solid ${t.border}`, color: t.text }}
-          >
-            <svg width="16" height="16" viewBox="0 0 48 48">
-              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.4 0 24 0 14.6 0 6.5 5.4 2.5 13.2l7.9 6.1C12.3 13.1 17.7 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.8-9.8 6.8-17.4z"/>
-              <path fill="#FBBC05" d="M10.4 28.3A14.4 14.4 0 0 1 9.6 24c0-1.5.3-3 .7-4.3l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.7l7.9-6.4z"/>
-              <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.6 2.3-6.3 0-11.7-3.6-13.6-8.8l-7.9 6.4C6.5 42.6 14.6 48 24 48z"/>
-            </svg>
-            Continue with Google
-          </button>
 
           <p className="text-center text-sm mt-8" style={{ color: t.muted }}>
             Already have an account?{' '}
