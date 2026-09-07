@@ -37,4 +37,28 @@ export async function apiPost(path, body) {
   return data;
 }
 
+
+export async function apiPostForm(path, fields) {
+  const body = new URLSearchParams();
+  Object.entries(fields).forEach(([key, value]) => body.append(key, value));
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new ApiError(
+      extractErrorMessage(data, `Request failed (${res.status})`),
+      res.status,
+      data
+    );
+  }
+
+  return data;
+}
+
 export { ApiError };
