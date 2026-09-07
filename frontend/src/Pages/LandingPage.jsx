@@ -5,7 +5,7 @@ import TrustBar from '../component/TrustBar';
 import AboutSection from '../component/AboutSection';
 import FeatureGrid from '../component/FeatureGrid';
 import ProblemSection from '../component/ProblemSection';
-import Testimonials from '../component/Testimonials';
+import Testimonials from '../component/Testimonial';
 import FinalCta from '../component/FinalCta';
 
 function LandingPage({ t }) {
