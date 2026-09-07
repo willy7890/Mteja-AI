@@ -60,10 +60,7 @@ function SignupPage({ t }) {
     setIsSubmitting(true);
 
     try {
-      // The register endpoint returns the created user record, NOT an
-      // auth token — so there's no auto-login here. The user has to log
-      // in separately right after, which is why we redirect to /login
-      // instead of a dashboard.
+     
       await apiPost('/api/v1/auth/register', {
         email,
         full_name: name,
@@ -80,52 +77,7 @@ function SignupPage({ t }) {
   }
 
   return (
-    <div className="min-h-screen pt-20 grid lg:grid-cols-2">
-      <div
-        className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden"
-        style={{ background: t.accent }}
-      >
-        <div
-          className="absolute -bottom-32 -left-20 w-96 h-96 rounded-full"
-          style={{ background: t.accentText, opacity: 0.06 }}
-        />
-        <div
-          className="absolute -top-24 -right-16 w-72 h-72 rounded-full"
-          style={{ background: t.accentText, opacity: 0.08 }}
-        />
-
-        <span className="text-xl font-semibold relative" style={{ color: t.accentText }}>
-          MtejaAI
-        </span>
-
-        <div className="relative">
-          <h2
-            className="text-3xl font-semibold tracking-tight leading-tight mb-4"
-            style={{ color: t.accentText }}
-          >
-            Set up your unified inbox in under five minutes.
-          </h2>
-          <p className="text-sm opacity-80" style={{ color: t.accentText }}>
-            Connect WhatsApp, Instagram, email, and calls — MtejaAI starts
-            replying to customers the moment you're done.
-          </p>
-        </div>
-
-        <div className="relative space-y-3">
-          {['No credit card required', '14-day free trial', 'Cancel anytime'].map((item) => (
-            <div key={item} className="flex items-center gap-2.5">
-              <div
-                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: `${t.accentText}26` }}
-              >
-                <Check size={12} color={t.accentText} strokeWidth={3} />
-              </div>
-              <span className="text-sm" style={{ color: t.accentText }}>{item}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
+    <div>
       <div className="flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm">
           <h1 className="text-2xl font-semibold tracking-tight mb-2" style={{ color: t.text }}>

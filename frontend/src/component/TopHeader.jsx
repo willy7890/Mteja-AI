@@ -3,11 +3,13 @@ import { Search, Bell, LogOut, User, CreditCard, Settings, Layers, ChevronDown }
 
 export const TopHeader = ({
   t,
+  user,
   currentPage,
   activePage,
   unreadCount,
   unreadNotificationsCount,
   onNavigate,
+  onLogout,
   onOpenCommandPalette,
   onToggleMobileMenu,
 }) => {
@@ -38,7 +40,7 @@ export const TopHeader = ({
     return titles[page] || "Overview";
   };
 
-
+  
   const allPages = [
     { id: "dashboard", label: "Dashboard Overview", category: "Core" },
     { id: "inbox", label: "Unified Inbox", category: "Core" },
@@ -145,17 +147,14 @@ export const TopHeader = ({
             className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all"
             style={{ background: t.text, color: t.bg }}
           >
-            KM
+            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : '?'}
           </button>
 
           {profileDropdownOpen && (
             <div className="absolute right-0 mt-2 w-56 rounded-2xl shadow-lg p-2 z-50" style={{ background: t.card, border: `1px solid ${t.border}` }}>
               <div className="px-3 py-2" style={{ borderBottom: `1px solid ${t.border}` }}>
-                <p className="text-xs font-bold" style={{ color: t.text }}>Khamis M.</p>
-                <p className="text-[11px] truncate" style={{ color: t.muted }}>Zawadi Emporium</p>
-                <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold" style={{ color: t.accent }}>
-                  <span>● Dar es Salaam, Tanzania</span>
-                </div>
+                <p className="text-xs font-bold" style={{ color: t.text }}>{user?.full_name || 'Loading…'}</p>
+                <p className="text-[11px] truncate" style={{ color: t.muted }}>{user?.email || ''}</p>
               </div>
 
               <div className="py-1">
@@ -178,7 +177,7 @@ export const TopHeader = ({
 
               <div className="pt-1" style={{ borderTop: `1px solid ${t.border}` }}>
                 <button
-                  onClick={() => { onNavigate("login"); setProfileDropdownOpen(false); }}
+                  onClick={() => { onLogout?.(); setProfileDropdownOpen(false); }}
                   className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-lg transition-colors"
                   style={{ color: t.text }}
                 >

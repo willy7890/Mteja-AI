@@ -17,16 +17,23 @@ function extractErrorMessage(data, fallback) {
   return fallback;
 }
 
-export async function apiPost(path, body) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
 
+function authHeader() {
+  const token = localStorage.getItem('access_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function handleResponse(res) {
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
+    // A 401 here means the stored token is missing, expired, or invalid.
+    // Clearing it forces a real re-login instead of the app silently
+    // retrying with a dead token on every subsequent request.
+    if (res.status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    }
     throw new ApiError(
       extractErrorMessage(data, `Request failed (${res.status})`),
       res.status,
@@ -35,6 +42,15 @@ export async function apiPost(path, body) {
   }
 
   return data;
+}
+
+export async function apiPost(path, body) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return handleResponse(res);
 }
 
 
@@ -47,18 +63,34 @@ export async function apiPostForm(path, fields) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
   });
+  return handleResponse(res);
+}
 
-  const data = await res.json().catch(() => null);
 
-  if (!res.ok) {
-    throw new ApiError(
-      extractErrorMessage(data, `Request failed (${res.status})`),
-      res.status,
-      data
-    );
-  }
 
-  return data;
+export async function apiGet(path) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: { ...authHeader() },
+  });
+  return handleResponse(res);
+}
+
+export async function apiAuthPost(path, body) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(body),
+  });
+  return handleResponse(res);
+}
+
+export async function apiAuthPatch(path, body) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(body),
+  });
+  return handleResponse(res);
 }
 
 export { ApiError };

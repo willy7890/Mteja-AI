@@ -6,6 +6,7 @@ import {
 
 export const Sidebar = ({
   t,
+  user,
   currentPage,
   activePage,
   onNavigate,
@@ -180,11 +181,17 @@ export const Sidebar = ({
         <div className="mt-auto p-5" style={{ borderTop: `1px solid ${t.border}`, background: t.card }}>
           <button onClick={() => handleItemNavigate("profile")} className="w-full flex items-center gap-3 text-left p-2 rounded-xl transition-colors" style={{ background: 'transparent' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: t.text, color: t.bg }}>
-              KM
+              {/* First letter of the real name, falling back to "?" only
+                  if user data somehow isn't loaded yet. */}
+              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : '?'}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold truncate" style={{ color: t.text }}>Khamis M.</div>
-              <div className="text-[11px] truncate" style={{ color: t.muted }}>Zawadi Emporium</div>
+              <div className="text-sm font-semibold truncate" style={{ color: t.text }}>
+                {user?.full_name || 'Loading…'}
+              </div>
+              <div className="text-[11px] truncate" style={{ color: t.muted }}>
+                {user?.email || ''}
+              </div>
             </div>
             <ChevronRight size={16} color={t.muted} />
           </button>
