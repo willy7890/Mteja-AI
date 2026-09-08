@@ -1,9 +1,13 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parents[2] / ".env",
+        extra="ignore",
+    )
 
     APP_NAME: str = "MTEJA AI"
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
@@ -18,6 +22,7 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
+    TELEGRAM_BOT_TOKEN: str = ""
     AT_USERNAME: str
     AT_API_KEY: str
 

@@ -6,7 +6,7 @@ from typing import Literal
 
 class Supervisor:
 
-    def analyze_intent(self, message: str) -> Literal["marketing", "followup", "sales", "unknown"]:
+    def analyze_intent(self, message: str) -> Literal["marketing", "followup", "sales", "support", "unknown"]:
         message = message.lower()
 
         marketing_keywords = [
@@ -38,6 +38,10 @@ class Supervisor:
             if word in message:
                 return "followup"
 
+        for word in support_keywords:
+            if word in message:
+                return "support"
+
         for word in sales_keywords:
             if word in message:
                 return "sales"
@@ -53,5 +57,7 @@ class Supervisor:
             return "followup_agent"
         elif intent == "sales":
             return "sales_agent"
+        elif intent == "support":
+            return "support_agent"
         else:
             return "unknown"
