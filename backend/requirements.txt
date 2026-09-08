@@ -21,3 +21,4 @@ alembic>=1.13.0
 fastapi-mail
 africastalking
 langchain-core
+langchain-openai
