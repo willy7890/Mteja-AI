@@ -17,7 +17,9 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "sqlite+aiosqlite:///./mteja_ai.db"
 
+    # =========================
     # Email
+    # =========================
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
     MAIL_FROM: str
@@ -27,11 +29,15 @@ class Settings(BaseSettings):
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
 
+    # =========================
     # Africa's Talking
+    # =========================
     AT_USERNAME: str
     AT_API_KEY: str
 
+    # =========================
     # Telegram
+    # =========================
     TELEGRAM_BOT_TOKEN: str = ""
 
     def model_post_init(self, __context):
