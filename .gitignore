@@ -1,10 +1,9 @@
-cat > .gitignore << 'EOF'
-# Virtual environment
+# Python virtual environments
 venv/
 .venv/
 env/
 
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
 *.pyc
@@ -14,30 +13,31 @@ __pycache__/
 
 # Environment variables
 .env
-.env.local
-*.env
+.env.*
+!.env.example
 
-# Database
+# Databases
 *.db
+*.sqlite
 *.sqlite3
+
+# Node
+node_modules/
+dist/
+build/
 
 # IDE
 .vscode/
 .idea/
-*.swp
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Node (frontend)
-node_modules/
-dist/
-build/
-
 # Logs
 *.log
-EOFvenv/
-__pycache__/
-*.pyc
-frontend/node_modules/
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
