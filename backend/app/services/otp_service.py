@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 
 from app.models.otp import OTPCode, OTPChannel, OTPPurpose
 from app.services.email_service import EmailService
+from app.services.sms_service import SMSService
 
 
 class OTPService:
@@ -25,7 +26,7 @@ class OTPService:
         user_id: int | None = None,
         expiry_minutes: int = 10,
     ) -> OTPCode:
-        # Invalidate previous unused OTPs
+    
         query = select(OTPCode).where(
             and_(
                 OTPCode.purpose == purpose,
@@ -65,6 +66,14 @@ class OTPService:
                 purpose=purpose.value
             )
             print(f"Email send result: {success}")
+        elif channel == OTPChannel.SMS and phone:
+            print(f"Trying to send SMS to {phone} with OTP {otp.code}")
+            success = await SMSService.send_otp_sms(
+                to=phone,
+                otp_code=otp.code,
+                purpose=purpose.value
+            )
+            print(f"SMS send result: {success}")
 
         return otp
 

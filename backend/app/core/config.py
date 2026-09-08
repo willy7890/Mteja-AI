@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
     TELEGRAM_BOT_TOKEN: str = ""
+    AT_USERNAME: str
+    AT_API_KEY: str
 
     def model_post_init(self, __context):
         allowed_prefixes = (
