@@ -114,7 +114,14 @@ async def create_message(
 
   # 1. Save the incoming message
   message = Message(
-      conversation_id=id, content=data.content, sender_type=data.sender_type
+      conversation_id=id,
+      content=data.content,
+      sender_type=data.sender_type,
+      sender_name=(
+        current_user.full_name
+        if data.sender_type in {"agent", "human"}
+        else (conv.customer.name if data.sender_type == "customer" else data.sender_type)
+      ),
   )
   db.add(message)
   await db.commit()
@@ -125,7 +132,10 @@ async def create_message(
     ai_response_text = await generate_agent_reply(data.content)
 
     ai_message = Message(
-        conversation_id=id, content=ai_response_text, sender_type="ai"
+      conversation_id=id,
+      content=ai_response_text,
+      sender_type="ai",
+      sender_name="MtejaAI",
     )
     db.add(ai_message)
     await db.commit()

@@ -2,6 +2,7 @@ cat > .gitignore << 'EOF'
 # Virtual environment
 venv/
 .venv/
+.venv-1/
 env/
 
 # Python
