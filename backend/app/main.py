@@ -5,11 +5,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import engine, Base
+
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.customer import Customer
 from app.models.telegram import TelegramLink, TelegramSession
-from app.models import customer, organization, user, activity_log, conversation, message
+from app.models import (
+    customer,
+    organization,
+    user,
+    activity_log,
+    conversation,
+    message,
+)
+
 from app.api.router import api_router
 from app.routes.chat import router as chat_router
 from app.api.v1 import webhooks
@@ -24,34 +33,107 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+
 telegram_app = build_telegram_app()
-telegram_status = {"verified": False, "username": None, "polling": False}
+
+telegram_status = {
+    "verified": False,
+    "username": None,
+    "polling": False,
+    "error": None,
+}
 
 
 @app.on_event("startup")
 async def on_startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
-    await telegram_app.initialize()
-    bot = await telegram_app.bot.get_me()
-    telegram_status.update(
-        verified=True,
-        username=bot.username,
-    )
-    await telegram_app.start()
-    await telegram_app.updater.start_polling()
-    telegram_status["polling"] = True
-    logger.info("Telegram bot started (polling) as @%s", bot.username)
+    
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        logger.info("Database initialized successfully")
+
+    except Exception as exc:
+        logger.exception("Database initialization failed: %s", exc)
+        raise
+
+    try:
+        logger.info("Initializing Telegram bot...")
+
+        await telegram_app.initialize()
+
+        bot = await telegram_app.bot.get_me()
+
+        telegram_status.update(
+            verified=True,
+            username=bot.username,
+            error=None,
+        )
+
+        logger.info(
+            "Telegram bot verified successfully as @%s",
+            bot.username,
+        )
+
+        await telegram_app.start()
+
+        if telegram_app.updater is not None:
+            await telegram_app.updater.start_polling()
+
+            telegram_status["polling"] = True
+
+            logger.info(
+                "Telegram polling started as @%s",
+                bot.username,
+            )
+
+    except Exception as exc:
+       
+        telegram_status.update(
+            verified=False,
+            polling=False,
+            error=str(exc),
+        )
+
+        logger.exception(
+            "Telegram startup failed, but FastAPI will continue: %s",
+            exc,
+        )
+
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
+
     telegram_status["polling"] = False
-    await telegram_app.updater.stop()
-    await telegram_app.stop()
-    await telegram_app.shutdown()
-    logger.info("Telegram bot stopped")
+
+    try:
+        if telegram_app.updater is not None:
+            await telegram_app.updater.stop()
+    except Exception as exc:
+        logger.warning(
+            "Telegram updater shutdown warning: %s",
+            exc,
+        )
+
+    try:
+        await telegram_app.stop()
+    except Exception as exc:
+        logger.warning(
+            "Telegram application shutdown warning: %s",
+            exc,
+        )
+
+    try:
+        await telegram_app.shutdown()
+    except Exception as exc:
+        logger.warning(
+            "Telegram shutdown warning: %s",
+            exc,
+        )
+
+    logger.info("Application shutdown complete")
 
 
 app.add_middleware(
@@ -63,16 +145,28 @@ app.add_middleware(
 )
 
 
-app.include_router(api_router, prefix="/api")
+app.include_router(
+    api_router,
+    prefix="/api",
+)
+
+app.include_router(
+    chat_router,
+    tags=["chat"],
+)
+
+app.include_router(
+    webhooks.router,
+    prefix="/api/v1",
+)
 
 
 @app.get("/")
 async def root():
     return {
         "message": "MTEJA AI API is running",
-        "docs": "/docs"
+        "docs": "/docs",
     }
-
 
 @app.get("/health")
 async def health():
@@ -80,8 +174,3 @@ async def health():
         "status": "ok",
         "telegram": telegram_status,
     }
-
-
-app.include_router(chat_router, tags=["chat"])
-
-app.include_router(webhooks.router, prefix="/api/v1")

@@ -5,10 +5,13 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.api.dependencies import get_message_service
 from app.services.message import MessageService
-from app.models.customer import Customer  # assume una model hii
+from app.models.customer import Customer
+from app.agents.orchestrator import Orchestrator
+from app.services.telegram_service import format_telegram_reply
 
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
+orchestrator = Orchestrator()
 
 
 
@@ -28,7 +31,7 @@ async def find_customer_by_identity(
     
         query = select(Customer).where(
             Customer.organization_id == organization_id,
-            Customer.telegram_id == identity,  
+            Customer.phone == identity,
         )
     elif channel == "sms":
         query = select(Customer).where(
@@ -90,10 +93,28 @@ async def telegram_webhook(
         customer_id=customer.id,
     )
 
+    result = await orchestrator.run(
+        db=db,
+        organization_id=organization_id,
+        conversation_id=str(message.conversation_id),
+        message=normalized["content"],
+    )
+    reply_text = format_telegram_reply(result)
+    reply = await message_service.send(
+        db=db,
+        organization_id=organization_id,
+        conversation_id=message.conversation_id,
+        content=reply_text,
+        channel="telegram",
+        sender_name=result.get("agent", "mteja-ai"),
+    )
+
     return {
         "ok": True,
         "message_id": message.id,
         "conversation_id": message.conversation_id,
+        "reply_id": reply.external_id,
+        "reply_status": reply.status,
     }
 
 
