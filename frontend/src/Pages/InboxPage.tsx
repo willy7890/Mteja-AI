@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   MessageSquare,
-  Instagram,
+  Camera,
   Mail,
   PhoneCall,
   Search,
@@ -90,7 +90,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
       case 'instagram':
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#E4405F] bg-[#E4405F]/10 px-2 py-0.5 rounded-full">
-            <Instagram className="w-3 h-3" />
+            <Camera className="w-3 h-3" />
             <span>Instagram</span>
           </span>
         );

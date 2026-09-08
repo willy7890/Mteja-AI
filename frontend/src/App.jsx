@@ -90,7 +90,7 @@ function App() {
             DashboardLayout, completely separate from the site above. */}
         <Route path="/dashboard" element={<DashboardLayout t={t} />}>
           <Route index element={<DashboardPage t={t} />} />
-          <Route path="inbox" element={<ComingSoon t={t} title="Inbox" />} />
+          <Route path="inbox" element={<InboxPage t={t} />} />
           <Route path="customers" element={<ComingSoon t={t} title="Customers" />} />
           <Route path="ai-agent" element={<ComingSoon t={t} title="AI Agent" />} />
           <Route path="automations" element={<ComingSoon t={t} title="Automations" />} />
@@ -100,7 +100,6 @@ function App() {
           <Route path="billing" element={<ComingSoon t={t} title="Billing" />} />
           <Route path="settings" element={<ComingSoon t={t} title="Settings" />} />
           <Route path="notifications" element={<ComingSoon t={t} title="Notifications" />} />
-          <Route path="inbox" element={<InboxPage t={t} />} />
         </Route>
       </Routes>
     </BrowserRouter>
