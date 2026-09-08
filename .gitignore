@@ -37,4 +37,7 @@ build/
 
 # Logs
 *.log
-EOF
+EOFvenv/
+__pycache__/
+*.pyc
+frontend/node_modules/

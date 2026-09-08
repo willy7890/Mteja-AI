@@ -22,7 +22,12 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
+<<<<<<< HEAD
+    AT_USERNAME: str
+    AT_API_KEY: str
+=======
     TELEGRAM_BOT_TOKEN: str = ""
+>>>>>>> origin/develop
 
     def model_post_init(self, __context):
         allowed_prefixes = (
