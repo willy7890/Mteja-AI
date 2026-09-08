@@ -10,10 +10,14 @@ class Settings(BaseSettings):
     )
 
     APP_NAME: str = "MTEJA AI"
+
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
+
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
     DATABASE_URL: str = "sqlite+aiosqlite:///./mteja_ai.db"
 
+    # Email
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
     MAIL_FROM: str
@@ -22,9 +26,13 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
-    TELEGRAM_BOT_TOKEN: str = ""
+
+    # Africa's Talking
     AT_USERNAME: str
     AT_API_KEY: str
+
+    # Telegram
+    TELEGRAM_BOT_TOKEN: str = ""
 
     def model_post_init(self, __context):
         allowed_prefixes = (
@@ -32,9 +40,11 @@ class Settings(BaseSettings):
             "sqlite+aiosqlite://",
             "sqlite://",
         )
+
         if not self.DATABASE_URL.startswith(allowed_prefixes):
             raise ValueError(
-                "DATABASE_URL must use PostgreSQL with asyncpg or SQLite with aiosqlite"
+                "DATABASE_URL must use PostgreSQL with asyncpg or "
+                "SQLite with aiosqlite"
             )
 
 
