@@ -8,7 +8,7 @@ import SignupPage from './Pages/SignupPage';
 import TermsOfService from './Pages/TermsOfService';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
 import DashboardPage from './Pages/DashboardPage';
-import InboxPage from './pages/InboxPage';
+import InboxPage from './Pages/InboxPage';
 
 const iconTemplates = [
   `<path d="M-15 -10 h30 a6 6 0 0 1 6 6 v14 a6 6 0 0 1 -6 6 h-18 l-8 8 v-8 h-4 a6 6 0 0 1 -6 -6 v-14 a6 6 0 0 1 6 -6 z" />`,
