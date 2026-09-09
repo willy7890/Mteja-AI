@@ -46,7 +46,7 @@ telegram_status = {
     "verified": False,
     "username": None,
     "polling": False,
-    "mode": "webhook",
+    "mode": "polling",
     "error": None,
 }
 
@@ -76,31 +76,30 @@ async def on_startup():
         raise
 
     # --------------------------------------------------------
-    # TELEGRAM
+    # TELEGRAM (POLLING MODE - for local development)
     # --------------------------------------------------------
 
     try:
-        logger.info("Initializing Telegram bot in webhook mode...")
+        logger.info("Initializing Telegram bot in polling mode...")
 
         await telegram_app.initialize()
 
         bot = await telegram_app.bot.get_me()
 
+        await telegram_app.start()
+        await telegram_app.updater.start_polling()
+
         telegram_status.update(
             verified=True,
             username=bot.username,
-            polling=False,
-            mode="webhook",
+            polling=True,
+            mode="polling",
             error=None,
         )
 
         logger.info(
-            "Telegram bot verified successfully as @%s",
+            "Telegram bot started (polling) as @%s",
             bot.username,
-        )
-
-        logger.info(
-            "Telegram polling is DISABLED. Webhook mode is active."
         )
 
     except Exception as exc:
@@ -108,7 +107,7 @@ async def on_startup():
         telegram_status.update(
             verified=False,
             polling=False,
-            mode="webhook",
+            mode="polling",
             error=str(exc),
         )
 
@@ -127,11 +126,9 @@ async def on_shutdown():
 
     telegram_status["polling"] = False
 
-    # --------------------------------------------------------
-    # TELEGRAM APPLICATION SHUTDOWN
-    # --------------------------------------------------------
-
     try:
+        await telegram_app.updater.stop()
+        await telegram_app.stop()
         await telegram_app.shutdown()
 
     except Exception as exc:
