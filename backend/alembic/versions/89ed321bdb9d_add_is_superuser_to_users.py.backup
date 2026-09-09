@@ -10,25 +10,6 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-from app.core.database import Base
-from app.models import (
-    activity_log,
-    agent,
-    campaign,
-    channel,
-    conversation,
-    customer,
-    deal,
-    integration,
-    lead,
-    message,
-    organization,
-    otp,
-    stock,
-    telegram,
-    user,
-)
-
 
 # revision identifiers, used by Alembic.
 revision: str = "89ed321bdb9d"
@@ -42,10 +23,6 @@ def _has_column(inspector, table_name: str, column_name: str) -> bool:
     return any(column["name"] == column_name for column in columns)
 
 
-def _has_table(inspector, table_name: str) -> bool:
-    return inspector.has_table(table_name)
-
-
 def _has_index(inspector, table_name: str, index_name: str) -> bool:
     indexes = inspector.get_indexes(table_name)
     return any(index["name"] == index_name for index in indexes)
@@ -56,12 +33,6 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     inspector = sa.inspect(bind)
-
-    # This project had no initial Alembic revision, so a fresh database has
-    # no tables for the conditional changes below to inspect.
-    if not _has_table(inspector, "users"):
-        Base.metadata.create_all(bind)
-        inspector = sa.inspect(bind)
 
     # ---------------------------------------------------------
     # USERS
