@@ -123,6 +123,10 @@ function Navbar({ t, dark, setDark }) {
               {link.name}
             </NavPill>
           ))}
+          <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: t.border }}>
+            <span style={{ color: t.text }}>Theme</span>
+            <ThemeToggle t={t} dark={dark} setDark={setDark} />
+          </div>
         </div>
       )}
     </nav>
