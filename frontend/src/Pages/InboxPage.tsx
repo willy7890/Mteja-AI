@@ -33,18 +33,18 @@ import {
 import { Conversation, ConversationFilter, ChannelType, PageId, ChatMessage } from '../../types';
 
 interface InboxPageProps {
-  conversations: Conversation[];
-  selectedConvId: string;
-  onSelectConversation: (id: string) => void;
-  onNavigate: (page: PageId) => void;
+  conversations?: Conversation[];
+  selectedConvId?: string;
+  onSelectConversation?: (id: string) => void;
+  onNavigate?: (page: PageId) => void;
   channelFilter?: ChannelType | null;
 }
 
 export const InboxPage: React.FC<InboxPageProps> = ({
-  conversations: initialConversations,
-  selectedConvId,
-  onSelectConversation,
-  onNavigate,
+  conversations: initialConversations = [],
+  selectedConvId = '',
+  onSelectConversation = () => {},
+  onNavigate = () => {},
   channelFilter,
 }) => {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);

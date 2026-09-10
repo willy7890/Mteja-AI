@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "axios": "^1.20.0",
     "bootstrap-icons": "^1.13.1",
     "lucide-react": "^1.43.0",
     "react": "^19.2.8",
