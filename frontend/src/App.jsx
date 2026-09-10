@@ -101,6 +101,7 @@ function App() {
           <Route path="billing" element={<ComingSoon t={t} title="Billing" />} />
           <Route path="settings" element={<ComingSoon t={t} title="Settings" />} />
           <Route path="notifications" element={<ComingSoon t={t} title="Notifications" />} />
+          <Route path="profile" element={<ComingSoon t={t} title="Profile" />} />
         </Route>
       </Routes>
     </BrowserRouter>
