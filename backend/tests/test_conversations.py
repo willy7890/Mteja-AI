@@ -34,6 +34,14 @@ async def test_conversations_flow_and_isolation(client):
     assert list_res.status_code == 200
     assert len(list_res.json()) >= 1
 
+    message_res = await client.post(
+        f"/api/v1/conversations/{conv_id}/messages",
+        json={"content": "mambo", "sender_type": "ai"},
+        headers=headers_a,
+    )
+    assert message_res.status_code == 201
+    assert message_res.json()["sender_type"] == "ai"
+
     await client.post("/api/v1/auth/register", json={
         "email": "agent2@otherorg.ai",
         "full_name": "Agent Two",

@@ -1,6 +1,6 @@
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from fastapi import HTTPException, status
@@ -26,12 +26,12 @@ class OTPService:
         user_id: int | None = None,
         expiry_minutes: int = 10,
     ) -> OTPCode:
-    
+
         query = select(OTPCode).where(
             and_(
                 OTPCode.purpose == purpose,
                 OTPCode.is_used == False,
-                OTPCode.expires_at > datetime.utcnow(),
+                OTPCode.expires_at > datetime.now(timezone.utc),
             )
         )
         if email:
@@ -52,7 +52,7 @@ class OTPService:
             code=code,
             channel=channel,
             purpose=purpose,
-            expires_at=datetime.utcnow() + timedelta(minutes=expiry_minutes),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=expiry_minutes),
         )
         db.add(otp)
         await db.commit()
@@ -128,7 +128,7 @@ class OTPService:
             )
 
         otp.is_used = True
-        otp.used_at = datetime.utcnow()
+        otp.used_at = datetime.now(timezone.utc)
         await db.commit()
         await db.refresh(otp)
 
