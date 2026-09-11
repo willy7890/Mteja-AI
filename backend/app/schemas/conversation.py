@@ -4,7 +4,8 @@ from datetime import datetime
 
 class MessageCreate(BaseModel):
     content: str
-    sender_type: str  # 'customer', 'agent', 'ai'
+    sender_type: str = "customer"  # 'customer', 'agent', 'ai'
+    sender_name: Optional[str] = None
 
 
 class ConversationCreate(BaseModel):
