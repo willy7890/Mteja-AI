@@ -1,43 +1,41 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from app.services.messaging_window import (
+    assert_can_send_free_form,
+    record_customer_message,
+    MessagingWindowClosedError,
+)
 
 class ChannelAdapter(ABC):
-    """
-    Base class kwa channel adapters zote (Telegram, Email, SMS, WhatsApp, n.k.).
-    
-    Strong separation:
-    - Adapter = Transport only
-    - MessageService = Conversation logic
-    """
-
-    channel_name: str
-
-    @abstractmethod
-    async def send(self, to: str, content: str, **kwargs) -> dict:
-        """
-        Tuma ujumbe.
-        Lazima irudishe:
-        {
-            "external_id": str | None,
-            "status": "sent" | "failed",
-            "error": str | None
-        }
-        """
+     channel_name: str
+     @abstractmethod
+     async def send(self, to: str, content: str, **kwargs) :
+           
+      @abstractmethod
+      def normalize_incoming(self, raw_payload: dict):
         pass
-
-    @abstractmethod
-    def normalize_incoming(self, raw_payload: dict) -> dict:
-        """
-        Badilisha payload ghafi → standard format.
         
-        Lazima irudishe:
-        {
-            "external_id": str,
-            "from": str,                    # external participant id
-            "content": str,
-            "channel_metadata": dict,
-            "timestamp": str | None         # ISO format
-        }
-        """
-        pass
+        
+        
+class WhatsAppAdapter(ChannelAdapter):
+
+  async def handle_incoming_message(self, db, conversation, payload):
+       
+         await record_customer_message(db, conversation)
+       
+
+async def send_free_form(self, db, conversation, text: str):
+        try:
+            
+            await assert_can_send_free_form(db, conversation)
+        except MessagingWindowClosedError:
+          
+            return await self.send_template_fallback(db, conversation)
+
+       
+        return await self._send_to_meta_api(conversation, text)
+
+        async def send_template_fallback(self, db, conversation):
+        
+         raise NotImplementedError("Template-based sending not yet implemented")

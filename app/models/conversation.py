@@ -18,12 +18,16 @@ class Conversation(Base):
 	assigned_to: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 	created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-	external_participant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)  # phone/email/telegram_id
+	external_participant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)  
 	metadata_: Mapped[dict | None] = mapped_column("metadata", JSON, nullable=True, default=dict)
 
    
 	updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
+ 
+	last_customer_message_at: Mapped[datetime] = mapped_column( DateTime, nullable=True)
+
+  
+	messaging_window_status: Mapped[str] = mapped_column( String, default="closed" )
  
 	messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
  

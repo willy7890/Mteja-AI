@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.services import messaging_window
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.models.user import User
@@ -96,5 +97,6 @@ app.include_router(chat_router, tags=["chat"])
 app.include_router(webhooks.router, prefix="/api/v1")
 
 
+#app.include_router(messaging_window.router, prefix="/api/v1", tags=["messaging-window"])
 
 app.include_router(media.router, prefix="/api/v1", tags=["media"])
