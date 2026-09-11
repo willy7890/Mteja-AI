@@ -1,10 +1,12 @@
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import engine, Base
+from fastapi.staticfiles import StaticFiles
 
 from app.models.user import User
 from app.models.organization import Organization
@@ -35,11 +37,6 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-
-# ============================================================
-# TELEGRAM APPLICATION
-# ============================================================
-
 telegram_app = build_telegram_app()
 
 telegram_status = {
@@ -50,17 +47,8 @@ telegram_status = {
     "error": None,
 }
 
-
-# ============================================================
-# STARTUP
-# ============================================================
-
 @app.on_event("startup")
 async def on_startup():
-
-    # --------------------------------------------------------
-    # DATABASE
-    # --------------------------------------------------------
 
     try:
         async with engine.begin() as conn:
@@ -74,10 +62,6 @@ async def on_startup():
             exc,
         )
         raise
-
-    # --------------------------------------------------------
-    # TELEGRAM (POLLING MODE - for local development)
-    # --------------------------------------------------------
 
     try:
         logger.info("Initializing Telegram bot in polling mode...")
@@ -116,11 +100,6 @@ async def on_startup():
             exc,
         )
 
-
-# ============================================================
-# SHUTDOWN
-# ============================================================
-
 @app.on_event("shutdown")
 async def on_shutdown():
 
@@ -139,11 +118,6 @@ async def on_shutdown():
 
     logger.info("Application shutdown complete")
 
-
-# ============================================================
-# CORS
-# ============================================================
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -151,11 +125,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# ============================================================
-# API ROUTES
-# ============================================================
 
 app.include_router(
     api_router,
@@ -174,11 +143,6 @@ app.include_router(
     prefix="/api/v1",
 )
 
-
-# ============================================================
-# ROOT
-# ============================================================
-
 @app.get("/")
 async def root():
 
@@ -187,11 +151,6 @@ async def root():
         "docs": "/docs",
     }
 
-
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
 @app.get("/health")
 async def health():
 
@@ -199,3 +158,6 @@ async def health():
         "status": "ok",
         "telegram": telegram_status,
     }
+
+os.makedirs("uploads/customers", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
