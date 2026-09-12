@@ -93,4 +93,17 @@ export async function apiAuthPatch(path, body) {
   return handleResponse(res);
 }
 
+export async function apiAuthUpload(path, file, fields = {}) {
+  const body = new FormData();
+  body.append('file', file);
+  Object.entries(fields).forEach(([key, value]) => body.append(key, String(value)));
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { ...authHeader() },
+    body,
+  });
+  return handleResponse(res);
+}
+
 export { ApiError };

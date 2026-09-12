@@ -36,9 +36,31 @@ class Settings(BaseSettings):
     AT_API_KEY: str
 
     # =========================
+    # SMS
+    # =========================
+    SMS_PROVIDER: str = "africastalking"
+    SMS_API_KEY: str = ""
+    SMS_API_SECRET: str = ""
+    SMS_FROM: str = ""
+
+    # =========================
     # Telegram
     # =========================
     TELEGRAM_BOT_TOKEN: str = ""
+
+    # =========================
+    # Meta webhooks and APIs
+    # =========================
+    META_APP_SECRET: str = ""
+    WHATSAPP_VERIFY_TOKEN: str = ""
+    WHATSAPP_ACCESS_TOKEN: str = ""
+    WHATSAPP_PHONE_NUMBER_ID: str = ""
+    FACEBOOK_VERIFY_TOKEN: str = ""
+    FACEBOOK_ACCESS_TOKEN: str = ""
+    FACEBOOK_PAGE_ID: str = ""
+    INSTAGRAM_VERIFY_TOKEN: str = ""
+    INSTAGRAM_ACCESS_TOKEN: str = ""
+    INSTAGRAM_PAGE_ID: str = ""
 
     def model_post_init(self, __context):
         allowed_prefixes = (

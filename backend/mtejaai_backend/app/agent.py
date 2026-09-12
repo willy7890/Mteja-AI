@@ -1,16 +1,3 @@
-"""
-Core agentic logic: classify an inbound message, then either let the
-agent reply or hand off to a human.
-
-Two modes:
-- LIVE: if ANTHROPIC_API_KEY is set, calls the real model.
-- MOCK: deterministic keyword-based fallback, used automatically if no
-  key is set or the API call fails (e.g. no internet on stage). This is
-  intentional — a demo should never go blank because of wifi.
-
-The response always reports which mode ran (`mock_mode`), so nothing is
-presented as "AI" that wasn't.
-"""
 import json
 import os
 import re
@@ -47,7 +34,6 @@ Return JSON exactly in this shape:
 
 
 def _extract_budget(text: str) -> float | None:
-    """Very simple number extraction for a stated budget, e.g. 'I have 20000' or '20k'."""
     text = text.lower().replace(",", "")
     match = re.search(r"(\d+)\s*k\b", text)
     if match:
@@ -62,7 +48,6 @@ _PRODUCT_INTENT_WORDS = ["price", "cost", "how much", "product", "service", "pac
 
 
 def _build_product_context(latest_text: str) -> str:
-    """Search the real catalog and format matches for the prompt — or return empty if nothing relevant."""
     lower = latest_text.lower()
     if not any(w in lower for w in _PRODUCT_INTENT_WORDS) and _extract_budget(latest_text) is None:
         return ""
@@ -111,9 +96,6 @@ def _call_live(history_text: str, product_context: str) -> dict | None:
     except Exception:
         return None
 
-
-# --- Offline fallback: simple, deterministic, transparent ---
-
 _PRICE_WORDS = ["price", "discount", "cheap", "expensive", "cost", "negotiate", "bei", "punguza"]
 _COMPLAINT_WORDS = ["refund", "complain", "terrible", "bad service", "money back", "angry", "disappointed"]
 _GREETING_WORDS = ["hour", "open", "close", "available", "book", "appointment", "time", "wapi", "saa"]
@@ -121,9 +103,6 @@ _NON_CUSTOMER_HINTS = ["lol", "😂", "bro", "free", "eyy", "vipi", "mzee"]
 
 
 def _guess_keyword(text: str) -> str | None:
-    """Match the message against real product names so a keyword-specific
-    question (e.g. 'hair color') searches by that word, not just budget.
-    Prefers the longest matching word — more specific words win over generic ones."""
     lower = text.lower()
     candidates = []
     for p in store.list_products():
@@ -174,8 +153,6 @@ def _call_mock(latest_text: str) -> dict:
         keyword = _guess_keyword(latest_text)
         matches = store.search_products(max_price=budget, keyword=keyword)
         if matches:
-            # Specific keyword match → recommend the matching item itself (cheapest match).
-            # Budget-only, no keyword → recommend the best item that fits the budget (priciest within it).
             best = matches[0] if keyword else matches[-1]
             photo_note = " We can also send you a photo." if best["image_url"] else ""
             reply = (
@@ -220,7 +197,6 @@ def _call_mock(latest_text: str) -> dict:
 
 
 def classify_and_respond(history: list[dict]) -> dict:
-    """history: list of {"direction": "in"|"out", "text": str}, oldest first."""
     latest = history[-1]["text"]
     history_text = "\n".join(
         f"{'CUSTOMER' if h['direction'] == 'in' else 'AGENT'}: {h['text']}" for h in history
