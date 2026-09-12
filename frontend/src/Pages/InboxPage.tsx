@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   MessageSquare,
   Camera,
@@ -31,6 +31,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { Conversation, ConversationFilter, ChannelType, PageId, ChatMessage } from '../../types';
+import { apiAuthUpload } from '../api/Client';
 
 interface InboxPageProps {
   conversations?: Conversation[];
@@ -54,8 +55,35 @@ export const InboxPage: React.FC<InboxPageProps> = ({
   const [isAiTakeover, setIsAiTakeover] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [activeSuggestedReplyIndex, setActiveSuggestedReplyIndex] = useState<number | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<{ name: string; size: string; url: string } | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !activeConv) return;
+
+    setUploadError('');
+    setIsUploadingImage(true);
+    try {
+      const media = await apiAuthUpload('/api/v1/media/upload', file, {
+        conversation_id: activeConv.id,
+      });
+      setUploadedImage({
+        name: media.filename,
+        size: `${Math.ceil(media.file_size / 1024)} KB`,
+        url: media.file_url,
+      });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Image upload failed');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   // Filtering conversations
   const filteredConversations = conversations.filter((c) => {
@@ -123,6 +151,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
       timestamp: 'Just now',
       isAiReplied: !isAiTakeover,
       intentDetected: isAiTakeover ? 'Human Agent Override' : 'Automated Smart Reply',
+      attachments: uploadedImage ? [uploadedImage] : undefined,
     };
 
     setConversations((prev) =>
@@ -141,6 +170,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
     );
 
     setMessageInput('');
+    setUploadedImage(null);
   };
 
   const handleApproveSuggested = (replyText: string) => {
@@ -506,10 +536,19 @@ export const InboxPage: React.FC<InboxPageProps> = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-[#68756F]">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
                     <button
                       type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingImage || !activeConv}
                       className="p-1.5 rounded-lg hover:bg-[#F7F6F1] hover:text-[#10231C]"
-                      title="Attach file / image / catalogue link"
+                      title={isUploadingImage ? 'Uploading image' : 'Attach image'}
                     >
                       <Paperclip className="w-4 h-4" />
                     </button>
@@ -548,6 +587,19 @@ export const InboxPage: React.FC<InboxPageProps> = ({
                     </button>
                   </div>
                 </div>
+                {(uploadedImage || uploadError) && (
+                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                    {uploadedImage && (
+                      <span className="text-[#287A59]">Attached: {uploadedImage.name} ({uploadedImage.size})</span>
+                    )}
+                    {uploadError && <span className="text-red-600">{uploadError}</span>}
+                    {uploadedImage && (
+                      <button type="button" onClick={() => setUploadedImage(null)} className="text-[#68756F] hover:text-[#10231C]" title="Remove attachment">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </form>
             </div>
           </>

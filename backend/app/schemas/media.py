@@ -1,6 +1,6 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
 
 
 class MediaFileResponse(BaseModel):
@@ -9,9 +9,8 @@ class MediaFileResponse(BaseModel):
     file_url: str
     content_type: str
     file_size: int
-    conversation_id: Optional[int] = None
-    message_id: Optional[int] = None
+    conversation_id: int | None = None
+    message_id: int | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

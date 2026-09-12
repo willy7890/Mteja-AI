@@ -1,8 +1,9 @@
 import logging
-import os
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -20,6 +21,7 @@ from app.models import (
     conversation,
     message,
 )
+from app.models.media import MediaFile
 
 from app.api.router import api_router
 from app.routes.chat import router as chat_router
@@ -36,6 +38,15 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+UPLOAD_ROOT = Path(__file__).resolve().parents[1] / "uploads"
+UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_ROOT), name="uploads")
+
+
+# ============================================================
+# TELEGRAM APPLICATION
+# ============================================================
 
 telegram_app = build_telegram_app()
 

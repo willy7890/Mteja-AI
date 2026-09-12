@@ -1,8 +1,3 @@
--- MTEJA AI PostgreSQL schema (multi-tenant)
--- Core tables: organizations, users, customers, conversations, messages,
--- leads, deals, campaigns, ai_agents, integrations, audit_logs
--- All tenant-scoped tables include organization_id with proper indexes
-
 CREATE TABLE IF NOT EXISTS stock (
 	id BIGSERIAL PRIMARY KEY,
 	organization_id BIGINT NOT NULL REFERENCES organizations(id),

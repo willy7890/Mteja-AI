@@ -1,11 +1,12 @@
 import os
 import uuid
+from pathlib import Path
 from fastapi import UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.media import MediaFile
 
 # Configuration
-UPLOAD_DIR = "uploads/customers"
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads" / "customers"
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
@@ -23,7 +24,7 @@ class MediaService:
             )
 
         # Check extension
-        ext = os.path.splitext(file.filename)[1].lower()
+        ext = os.path.splitext(file.filename or "")[1].lower()
         if ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -59,12 +60,12 @@ class MediaService:
             )
 
         # Create upload directory if not exists
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
         # Generate unique filename
-        ext = os.path.splitext(file.filename)[1].lower()
+        ext = os.path.splitext(file.filename or "")[1].lower()
         stored_filename = f"{uuid.uuid4().hex}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, stored_filename)
+        file_path = UPLOAD_DIR / stored_filename
 
         # Save file to disk
         with open(file_path, "wb") as buffer:
@@ -80,7 +81,7 @@ class MediaService:
             message_id=message_id,
             filename=file.filename,
             stored_filename=stored_filename,
-            file_path=file_path,
+            file_path=str(file_path),
             file_url=file_url,
             content_type=file.content_type,
             file_size=file_size,

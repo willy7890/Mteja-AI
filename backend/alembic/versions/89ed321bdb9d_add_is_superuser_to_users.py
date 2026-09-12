@@ -22,6 +22,7 @@ from app.models import (
     integration,
     lead,
     message,
+    media,
     organization,
     otp,
     stock,

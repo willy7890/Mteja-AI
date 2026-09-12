@@ -39,7 +39,6 @@ class MessageService:
 
         message = Message(
             conversation_id=conversation.id,
-            organization_id=organization_id,
             content=normalized["content"],
             direction="inbound",
             channel=channel,
@@ -53,7 +52,8 @@ class MessageService:
 
         db.add(message)
 
-        conversation.last_message_at = message.created_at
+        # 3. Update conversation
+        conversation.last_customer_message_at = message.created_at
         conversation.updated_at = datetime.utcnow()
 
         await db.commit()
@@ -87,7 +87,6 @@ class MessageService:
 
         message = Message(
             conversation_id=conversation.id,
-            organization_id=organization_id,
             content=content,
             direction="outbound",
             channel=target_channel,
@@ -122,7 +121,8 @@ class MessageService:
             message.status = "failed"
             message.error_info = {"error": str(e)}
 
-        conversation.last_message_at = datetime.utcnow()
+        # 6. Update conversation
+        conversation.updated_at = datetime.utcnow()
         conversation.updated_at = datetime.utcnow()
 
         await db.commit()
@@ -142,7 +142,6 @@ class MessageService:
             select(Message)
             .where(
                 Message.conversation_id == conversation_id,
-                Message.organization_id == organization_id,
             )
             .order_by(Message.created_at.desc())
             .limit(limit)
@@ -201,7 +200,7 @@ class MessageService:
             channel=channel,
             status="open",
             mode="ai",
-            last_message_at=datetime.now(),
+            last_customer_message_at=datetime.now(),
         )
         db.add(conversation)
         await db.flush()

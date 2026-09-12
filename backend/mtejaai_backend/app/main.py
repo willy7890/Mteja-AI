@@ -26,7 +26,6 @@ store.seed_demo_products()
 
 @app.post("/contacts", response_model=Contact, tags=["Contacts"])
 def create_contact(payload: ContactCreate):
-    """Create (or fetch, if the channel_id already exists) a contact."""
     return store.create_contact(payload.name, payload.channel_id)
 
 
@@ -52,11 +51,6 @@ def get_timeline(contact_id: int):
 
 @app.post("/contacts/{contact_id}/messages", response_model=MessageResponse, tags=["Messaging"])
 def send_message(contact_id: int, payload: MessageIn):
-    """
-    The core demo endpoint. Send a message as if it came from the
-    customer over SMS/email — this triggers classification, and either
-    an agent reply or a human handoff, live.
-    """
     contact = store.get_contact(contact_id)
     if not contact:
         raise HTTPException(404, "Contact not found")
