@@ -1,34 +1,23 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    APP_NAME: str = "Mteja AI"
+    DATABASE_URL: str = "postgresql+asyncpg://Mteja_Ai_user:2589Mteja@localhost:5432/mteja_ai_db"
 
-    APP_NAME: str = "MTEJA AI"
-    SECRET_KEY: str = "super-secret-key-change-this-in-production"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    DATABASE_URL: str = "sqlite+aiosqlite:///./mteja_ai.db"
-
+    # Mail Settings
     MAIL_USERNAME: str = ""
     MAIL_PASSWORD: str = ""
-    MAIL_FROM: str = ""
-    MAIL_FROM_NAME: str = "Mteja AI"
+    MAIL_FROM: str = "noreply@mteja.ai"
     MAIL_PORT: int = 587
     MAIL_SERVER: str = "smtp.gmail.com"
-    MAIL_STARTTLS: bool = True
-    MAIL_SSL_TLS: bool = False
-    AT_USERNAME: str = ""
-    AT_API_KEY: str = ""
 
-    def model_post_init(self, __context):
-        allowed_prefixes = (
-            "postgresql+asyncpg://",
-            "sqlite+aiosqlite://",
-            "sqlite://",
-        )
-        if not self.DATABASE_URL.startswith(allowed_prefixes):
-            raise ValueError(
-                "DATABASE_URL must use PostgreSQL with asyncpg or SQLite with aiosqlite"
-            )
+    AT_USERNAME: str = "sandbox"  
+    AT_API_KEY: str = "your_api_key_here"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
+
 settings = Settings()

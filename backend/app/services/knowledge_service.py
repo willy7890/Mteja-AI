@@ -1,35 +1,43 @@
-import json
-from langchain_core.documents import Document
+from sqlalchemy import select
+from app.models.training_data import TrainingData
 
 
 class KnowledgeBaseService:
-    def __init__(self):
-        # Load the JSON knowledge base file
-        with open("app/data/knowledge_base.json", "r", encoding="utf-8") as f:
-            items = json.load(f)
-        
-        # Create Document objects with title, content, and metadata
+    def __init__(self) -> None:
+        self.documents: list[dict[str, str]] = []
+
+    async def load_from_db(self, db_session) -> None:
+        result = await db_session.execute(select(TrainingData))
+        rows = result.scalars().all()
         self.documents = [
-            Document(
-                page_content=f"{item['title']}: {item['content']}",
-                metadata={"category": item["category"]},
-            )
-            for item in items
+            {
+                "question": row.question,
+                "answer": row.answer,
+                "category": str(row.category or ""),
+                # "content" ndiyo tunayotafuta ndani yake wakati wa search
+                "content": f"{row.question} {row.answer}",
+            }
+            for row in rows
         ]
-    
-    def search(self, query: str, k: int = 2) -> str:
-        """
-        Simple search function that returns the top k documents
-        matching the query. For now, returns all documents as context.
-        """
+
+    def search(self, query: str, k: int = 3) -> str:
         if not self.documents:
             return "No knowledge base available."
-        
-        # Simple approach: return all documents as context
-        # In production, use vector similarity search
-        context = "\n".join([doc.page_content for doc in self.documents[:k]])
-        return context
+
+        query_terms = set(query.lower().split())
+        ranked_documents = sorted(
+            self.documents,
+            key=lambda document: sum(
+                term in document["content"].lower() for term in query_terms
+            ),
+            reverse=True,
+        )
+
+        top_matches = ranked_documents[:k]
+        # Tunarudisha Q&A wazi, si maneno yaliyochanganywa tu
+        return "\n\n".join(
+            f"Q: {doc['question']}\nA: {doc['answer']}" for doc in top_matches
+        )
 
 
-# Initialize the knowledge base service
 kb_service = KnowledgeBaseService()

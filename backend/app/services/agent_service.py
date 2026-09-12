@@ -1,38 +1,56 @@
-import os
-from app.services.knowledge_service import kb_service
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.classification_service import classifier_service
+
+# Define categories that MUST always go to human agents
+HUMAN_ONLY_CATEGORIES = ["complaint", "pricing_dispute", "refund", "legal", "human_request"]
+CONFIDENCE_THRESHOLD = 0.65  # If ML model confidence is < 65%, escalate
 
 
+async def generate_agent_reply(message_text: str) -> str:
+    """Generate a bounded reply using the trained message classifier."""
+    prediction = classifier_service.classify_message(message_text)
+    category = prediction["category"]
+    confidence = prediction["confidence"]
 
-def get_llm():
-    """Get or initialize the LLM instance"""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
-    return ChatOpenAI(model="gpt-4o", temperature=0.3)
+    if confidence < CONFIDENCE_THRESHOLD:
+        return "I need a human agent to review your message. Someone will reply shortly."
+    return f"Thank you for asking about {category}. How can we assist you further?"
 
+async def handle_inbound_message(
+    db: AsyncSession,
+    organization_id: int,
+    contact_id: str,
+    message_text: str
+):
+    # 1. Run trained ML Model on customer message
+    prediction = classifier_service.classify_message(message_text)
+    category = prediction["category"]
+    confidence = prediction["confidence"]
 
-async def generate_agent_reply(user_message: str) -> str:
-  retrieved_context = kb_service.search(user_message, k=2)
+    print(f"ML Analysis -> Category: '{category}', Confidence: {confidence}")
 
-  system_prompt = (
-      "You are MtejaAI, an AI customer support assistant for a Tanzanian"
-      " business.\nUse ONLY the following knowledge base context to answer the"
-      " customer's question accurately.\nIf the answer is not in the knowledge"
-      " base, politely state that you cannot help and offer to hand over to"
-      f" human staff.\n\nKnowledge Base:\n{retrieved_context}"
-  )
+    # 2. Check if Escalation is required
+    is_dispute_category = category in HUMAN_ONLY_CATEGORIES
+    is_low_confidence = confidence < CONFIDENCE_THRESHOLD
 
-  messages = [
-      SystemMessage(content=system_prompt),
-      HumanMessage(content=user_message),
-  ]
+    if is_dispute_category or is_low_confidence:
+        reason = f"ML Category '{category}' requires human attention" if is_dispute_category else f"Low AI Confidence ({confidence:.2f})"
 
-  llm = get_llm()
-  if llm is None:
+        # Trigger Issue #59 Handoff
+        # Handoff persistence is handled by the channel-specific workflow.
+        return {
+            "status": "ESCALATED",
+            "category": category,
+            "confidence": confidence,
+            "reply": "Your message has been routed to our support team. An agent will reply shortly."
+        }
+
+    # 3. Standard AI Response (If confidence is high & safe category)
+    ai_reply = f"Thank you for asking about {category}. How can we assist you further?"
     
-    return "I apologize, but I'm unable to process your request at this moment. Please contact our support team."
-
-  response = await llm.ainvoke(messages)
-  return response.content
+    return {
+        "status": "AI_REPLIED",
+        "category": category,
+        "confidence": confidence,
+        "reply": ai_reply
+    }
