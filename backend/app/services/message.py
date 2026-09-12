@@ -12,30 +12,11 @@ from app.intergration.base_adapter import ChannelAdapter  # au app.integrations.
 
 
 class MessageService:
-    """
-    Channel-agnostic MessageService.
-    
-    - Haijui Telegram, Email, SMS, WhatsApp...
-    - Inazungumza tu na ChannelAdapter kupitia interface.
-    - Conversation history inapatikana independent of original channel.
-    - Multi-tenant safe (organization_id).
-    """
-
+ 
     def __init__(self, adapters: Dict[str, ChannelAdapter]):
-        """
-        adapters example:
-        {
-            "telegram": TelegramAdapter(),
-            "email": EmailAdapter(),
-            "sms": SmsAdapter(),
-            "whatsapp": WhatsAppAdapter(),
-        }
-        """
+     
         self.adapters = adapters
 
-    # =========================================================
-    # 1. INBOUND - Record message from any channel
-    # =========================================================
     async def handle_incoming(
         self,
         db: AsyncSession,
@@ -44,13 +25,10 @@ class MessageService:
         raw_payload: dict,
         customer_id: Optional[int] = None,
     ) -> Message:
-        """
-        Entry point ya kila ujumbe unaoingia (webhook).
-        """
+      
         adapter = self._get_adapter(channel)
         normalized = adapter.normalize_incoming(raw_payload)
 
-        # 1. Find or create Conversation
         conversation = await self._get_or_create_conversation(
             db=db,
             organization_id=organization_id,
@@ -59,13 +37,12 @@ class MessageService:
             customer_id=customer_id,
         )
 
-        # 2. Create Message (single internal model)
         message = Message(
             conversation_id=conversation.id,
             content=normalized["content"],
             direction="inbound",
             channel=channel,
-            status="delivered",  # inbound usually arrives delivered
+            status="delivered", 
             external_id=normalized.get("external_id"),
             sender_type="customer",
             sender_name=normalized.get("from", "Customer"),
@@ -82,12 +59,8 @@ class MessageService:
         await db.commit()
         await db.refresh(message)
 
-        # TODO: emit event "message.received" (for AI agents, notifications, etc.)
+         # TODO: 
         return message
-
-    # =========================================================
-    # 2. OUTBOUND - Send message (same interface for all channels)
-    # =========================================================
     async def send(
         self,
         db: AsyncSession,
@@ -99,25 +72,19 @@ class MessageService:
         sender_name: str = "Agent",
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Message:
-        """
-        Public interface ya kutuma ujumbe.
-        Channel-agnostic.
-        """
-        # 1. Load conversation (multi-tenant safe)
+     
         conversation = await self._get_conversation(
             db, organization_id, conversation_id
         )
         if not conversation:
             raise ValueError("Conversation not found or access denied")
 
-        # 2. Decide channel
         target_channel = channel or conversation.channel
         if not target_channel:
             raise ValueError("No channel available for this conversation")
 
         adapter = self._get_adapter(target_channel)
 
-        # 3. Create pending message first (single internal model)
         message = Message(
             conversation_id=conversation.id,
             content=content,
@@ -129,9 +96,8 @@ class MessageService:
             channel_metadata=metadata or {},
         )
         db.add(message)
-        await db.flush()  # get message.id
+        await db.flush() 
 
-        # 4. Send via adapter (transport concern only)
         try:
             to = conversation.external_participant_id
             if not to:
@@ -143,7 +109,6 @@ class MessageService:
                 **(metadata or {})
             )
 
-            # 5. Update status
             if result.get("status") == "sent":
                 message.status = "sent"
                 message.external_id = result.get("external_id")
@@ -164,9 +129,6 @@ class MessageService:
         await db.refresh(message)
         return message
 
-    # =========================================================
-    # 3. HISTORY - Channel independent
-    # =========================================================
     async def get_history(
         self,
         db: AsyncSession,
@@ -175,9 +137,7 @@ class MessageService:
         limit: int = 50,
         before: Optional[datetime] = None,
     ) -> List[Message]:
-        """
-        Retrieve conversation history independent of original channel.
-        """
+       
         query = (
             select(Message)
             .where(
@@ -192,11 +152,8 @@ class MessageService:
 
         result = await db.execute(query)
         messages = result.scalars().all()
-        return list(reversed(messages))  # chronological order
+        return list(reversed(messages)) 
 
-    # =========================================================
-    # Helpers
-    # =========================================================
     def _get_adapter(self, channel: str) -> ChannelAdapter:
         adapter = self.adapters.get(channel)
         if not adapter:
@@ -222,7 +179,7 @@ class MessageService:
         channel: str,
         customer_id: Optional[int] = None,
     ) -> Conversation:
-        # Try find existing by participant
+       
         query = select(Conversation).where(
             Conversation.organization_id == organization_id,
             Conversation.external_participant_id == external_participant_id,
@@ -233,7 +190,6 @@ class MessageService:
         if conversation:
             return conversation
 
-        # Create new
         if not customer_id:
             raise ValueError("customer_id is required when creating new conversation")
 
