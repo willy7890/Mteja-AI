@@ -2,7 +2,6 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_conversations_flow_and_isolation(client):
-    # 1. Sajili User wa Org 1 na upate Token
     await client.post("/api/v1/auth/register", json={
         "email": "agent1@mteja.ai",
         "full_name": "Agent One",

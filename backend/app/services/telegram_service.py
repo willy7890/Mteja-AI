@@ -25,7 +25,7 @@ orchestrator = Orchestrator()
 
 
 def format_telegram_reply(result: object) -> str:
-    """Convert an agent result into concise text suitable for Telegram."""
+
     if isinstance(result, str):
         return result
 
@@ -93,7 +93,6 @@ async def reset_session(db, session: TelegramSession):
 
 
 async def get_or_create_telegram_conversation(db, link: TelegramLink, update: Update):
-    # link.user is already loaded by get_link() via selectinload
     chat_id = str(update.effective_chat.id)
     display_name = update.effective_user.full_name or "Telegram customer"
     org_id = link.user.organization_id

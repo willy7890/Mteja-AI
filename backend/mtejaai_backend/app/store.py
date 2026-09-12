@@ -1,8 +1,3 @@
-"""
-In-memory store — deliberate choice for a same-day live demo: zero setup,
-zero DB connection risk on stage. Swap for PostgreSQL + SQLAlchemy
-(already scoped in the project docs) once past the demo.
-"""
 from datetime import datetime
 from itertools import count
 
@@ -96,7 +91,6 @@ def list_products() -> list[dict]:
 
 
 def search_products(max_price: float | None = None, keyword: str | None = None) -> list[dict]:
-    """Real filtered query against the product catalog — in-stock only."""
     results = [p for p in products.values() if p["quantity"] > 0]
     if max_price is not None:
         results = [p for p in results if p["price"] <= max_price]
