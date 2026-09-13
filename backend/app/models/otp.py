@@ -24,15 +24,12 @@ class OTPCode(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     email = Column(String(255), nullable=True, index=True)
     phone = Column(String(20), nullable=True, index=True)
-
     code = Column(String(6), nullable=False)
     channel = Column(Enum(OTPChannel), nullable=False)
     purpose = Column(Enum(OTPPurpose), default=OTPPurpose.REGISTRATION, nullable=False)
-
     is_used = Column(Boolean, default=False)
     attempts = Column(Integer, default=0)
     max_attempts = Column(Integer, default=5)
-
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     used_at = Column(DateTime(timezone=True), nullable=True)

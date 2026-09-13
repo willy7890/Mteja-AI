@@ -1,28 +1,26 @@
 from pathlib import Path
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_file_encoding="utf-8",
         extra="ignore",
     )
 
-    APP_NAME: str = "MTEJA AI"
-
+    APP_NAME: str = "Mteja AI"
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
-
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-    DATABASE_URL: str = "sqlite+aiosqlite:///./mteja_ai.db"
+    DATABASE_URL: str = "postgresql+asyncpg://Mteja_Ai_user:2589Mteja@localhost:5432/mteja_ai_db"
 
     # =========================
     # Email
     # =========================
-    MAIL_USERNAME: str
-    MAIL_PASSWORD: str
-    MAIL_FROM: str
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = "noreply@mteja.ai"
     MAIL_FROM_NAME: str = "Mteja AI"
     MAIL_PORT: int = 587
     MAIL_SERVER: str = "smtp.gmail.com"
@@ -32,8 +30,8 @@ class Settings(BaseSettings):
     # =========================
     # Africa's Talking
     # =========================
-    AT_USERNAME: str
-    AT_API_KEY: str
+    AT_USERNAME: str = "sandbox"
+    AT_API_KEY: str = ""
 
     # =========================
     # SMS

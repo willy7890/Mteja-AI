@@ -19,6 +19,7 @@ from app.models.user import User
 from app.core.security import hash_password, verify_password
 from app.models.organization import Organization
 from app.agents.orchestrator import Orchestrator
+from app.services.agent_service import generate_agent_reply
 
 logger = logging.getLogger(__name__)
 orchestrator = Orchestrator()
@@ -162,7 +163,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         session = await get_or_create_session(db, chat_id)
-        await update_session(db, session, state="idle")
+        await update_session(db, session, state="idle", temp_data={})
 
         keyboard = ReplyKeyboardMarkup(
             [["Login", "Register"]], one_time_keyboard=True, resize_keyboard=True
@@ -194,18 +195,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             db.add(user_message)
             await db.flush()
 
-            result = await orchestrator.run(
-                db=db,
-                organization_id=link.user.organization_id,
-                conversation_id=str(conversation.id),
-                message=text,
-            )
-            reply_text = format_telegram_reply(result)
+            reply_text = await generate_agent_reply(text)
             db.add(
                 Message(
                     conversation_id=conversation.id,
                     sender_type="agent",
-                    sender_name=result.get("agent", "mteja-ai"),
+                    sender_name="mteja-ai",
                     content=reply_text,
                 )
             )
@@ -215,7 +210,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         session = await get_or_create_session(db, chat_id)
         state = session.state
-        temp_data = session.temp_data or {}
+        # MUHIMU: tumia dict() kutengeneza nakala mpya kila wakati.
+        # "session.temp_data or {}" ilikuwa inarudisha object ile ile
+        # ya session.temp_data pale inapokuwa na data tayari (kwa sababu
+        # dict isiyo tupu ni "truthy"), hivyo mutation ilikuwa inabadilisha
+        # object ambayo SQLAlchemy tayari inaifuatilia KABLA ya kulinganishwa,
+        # na SQLAlchemy ilishindwa kugundua tofauti -> haikuhifadhi mabadiliko.
+        temp_data = dict(session.temp_data) if session.temp_data else {}
 
         if text.lower() == "login" and state == "idle":
             await update_session(db, session, state="login_email", temp_data={})
@@ -240,6 +241,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if state == "login_password":
             email = temp_data.get("email")
             password = text
+
+            if not email:
+                logger.warning(
+                    "Session %s reached login_password without email in temp_data: %s",
+                    session.id, temp_data,
+                )
+                await update.message.reply_text(
+                    "Samahani, kuna tatizo la kiufundi. Tafadhali anza tena kwa /start"
+                )
+                await reset_session(db, session)
+                return
 
             result = await db.execute(select(User).where(User.email == email))
             user = result.scalar_one_or_none()
@@ -300,6 +312,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if state == "register_orgname":
             org_name = text
+
+            required_keys = ("email", "full_name", "password")
+            missing = [k for k in required_keys if k not in temp_data]
+            if missing:
+                logger.warning(
+                    "Session %s missing keys %s in temp_data before user creation: %s",
+                    session.id, missing, temp_data,
+                )
+                await update.message.reply_text(
+                    "Samahani, muda wa usajili umeisha au kuna tatizo la kiufundi. "
+                    "Tafadhali anza tena kwa /start"
+                )
+                await reset_session(db, session)
+                return
 
             org = Organization(name=org_name)
             db.add(org)

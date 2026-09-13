@@ -22,7 +22,7 @@ from app.services.otp_service import OTPService
 from app.models.otp import OTPChannel, OTPPurpose
 
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):

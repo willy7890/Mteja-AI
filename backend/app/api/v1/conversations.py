@@ -19,7 +19,7 @@ from app.schemas.conversation import (
 )
 from app.services.agent_service import generate_agent_reply
 
-router = APIRouter(prefix="/conversations", tags=["Unified Inbox"])
+router = APIRouter(tags=["Unified Inbox"])
 
 
 @router.post(
@@ -119,11 +119,11 @@ async def create_message(
       sender_type=data.sender_type,
       sender_name=(
         data.sender_name
-        or {
-          "customer": "Customer",
-          "agent": current_user.full_name or "Agent",
-          "ai": "AI",
-        }.get(data.sender_type, data.sender_type.title())
+        or (
+          current_user.full_name
+          if data.sender_type in {"agent", "human"}
+          else (conv.customer.name if data.sender_type == "customer" else data.sender_type)
+        )
       ),
   )
   db.add(message)
@@ -138,7 +138,7 @@ async def create_message(
       conversation_id=id,
       content=ai_response_text,
       sender_type="ai",
-      sender_name="AI",
+      sender_name="MtejaAI",
     )
     db.add(ai_message)
     await db.commit()

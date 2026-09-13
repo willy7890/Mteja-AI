@@ -1,15 +1,19 @@
 # Python virtual environments
 venv/
 .venv/
+vvenv/
 env/
 
-# Python cache
+# Python cache and tooling
 __pycache__/
 *.py[cod]
 *.pyc
 *.pyo
 *.pyd
 .Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Environment variables
 .env
@@ -29,15 +33,14 @@ build/
 # IDE
 .vscode/
 .idea/
+*.swp
 
 # OS
 .DS_Store
 Thumbs.db
 
+# Jupyter
+.ipynb_checkpoints/
+
 # Logs
 *.log
-
-# Python tooling
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
