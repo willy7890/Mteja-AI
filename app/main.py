@@ -32,6 +32,7 @@ from app.routes.chat import router as chat_router
 from app.api.v1 import webhooks
 from app.services.telegram_service import build_telegram_app
 
+from app.api.analytics import router as analytics_router
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +179,9 @@ os.makedirs("uploads/customers", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
+
+
+app.include_router(analytics_router)
 
 
 
