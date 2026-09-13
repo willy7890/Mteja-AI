@@ -1,34 +1,14 @@
 from functools import lru_cache
 from typing import Dict
+from fastapi import HTTPException, status
 
-from app.services.message import MessageService
-from app.intergration.telegram.adapter import TelegramAdapter
+from dataclasses import dataclass
 
-from app.intergration.telegram.adapter import TelegramAdapter
 from app.intergration.email.adapter import EmailAdapter
+from app.intergration.meta_adapter import MetaAdapter
 from app.intergration.sms.adapter import SmsAdapter
-
-
-@lru_cache()
-def get_adapters() -> Dict[str, object]:
-    """
-    Sajili adapters zote hapa.
-    Ongeza channel mpya = ongeza line moja tu.
-    """
-    return {
-        "telegram": TelegramAdapter(),
-         "email": EmailAdapter(),
-         "sms": SmsAdapter(),
-    
-    }
-
-
-def get_message_service():
-    
-    adapters = get_adapters()
-    return MessageService(adapters=adapters)
-
-
+from app.intergration.telegram.adapter import TelegramAdapter
+from app.services.message import MessageService
 
 
 @lru_cache()
@@ -37,4 +17,30 @@ def get_adapters() -> Dict[str, object]:
         "telegram": TelegramAdapter(),
         "email": EmailAdapter(),
         "sms": SmsAdapter(),
+        "whatsapp": MetaAdapter("whatsapp"),
+        "facebook": MetaAdapter("facebook"),
+        "instagram": MetaAdapter("instagram"),
     }
+
+
+def get_message_service():
+    return MessageService(adapters=get_adapters())
+
+
+
+@dataclass
+class CurrentUser:
+    """Lightweight view of the authenticated user, used throughout the API."""
+    id: str
+    org_id: str
+    role: str
+    email: str | None = None
+ 
+ 
+credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
+ 
+

@@ -11,6 +11,7 @@ import bcrypt
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
+from app.api.dependencies import CurrentUser
 
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -75,3 +76,29 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
     return user
+
+
+
+
+async def require_admin(current_user: "User" = Depends(get_current_user)) -> "User":
+    
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user
+ 
+ 
+def require_role(*allowed_roles: str):
+    
+    async def _check_role(current_user: "User" = Depends(get_current_user)) -> "User":
+        if not current_user.is_superuser:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires one of roles: {', '.join(allowed_roles)}",
+            )
+        return current_user
+ 
+    return _check_role
+ 

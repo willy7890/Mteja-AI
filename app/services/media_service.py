@@ -1,85 +1,94 @@
 import os
 import uuid
+from pathlib import Path
+from fastapi import UploadFile, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.media import MediaFile
 
-from app.models.media_assets import MediaAsset
-from app.models.conversation import Conversation
-
-
-ALLOWED_MIME_TYPES = {"image/jpeg", "image/jpg", "image/png"}
-MAX_SIZE_BYTES = 5 * 1024 * 1024  
-UPLOAD_BASE_DIR = "uploads" 
-
-
-class MediaValidationError(Exception):
-    """Custom exception - router itaishika na kurudisha HTTP error sahihi"""
-    pass
+# Configuration
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads" / "customers"
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
-def validate_media(mime_type: str, size_bytes: int) -> None:
-    if mime_type not in ALLOWED_MIME_TYPES:
-        raise MediaValidationError("This file is not accepted. Use JPG or PNG.")
-    if size_bytes > MAX_SIZE_BYTES:
-        raise MediaValidationError(f"An image must not greater than {MAX_SIZE_BYTES // (1024*1024)}MB.")
+class MediaService:
 
+    @staticmethod
+    def validate_image(file: UploadFile) -> None:
+        # Check content type
+        if file.content_type not in ALLOWED_CONTENT_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only JPG, JPEG and PNG images are allowed"
+            )
 
-def generate_storage_path(organization_id: int, mime_type: str) -> tuple[str, str]:
-    """Inarudisha (reference_id, storage_path) - jina salama, si la mtumiaji"""
-    reference_id = str(uuid.uuid4())
-    ext = mime_type.split("/")[-1].replace("jpeg", "jpg")
-    storage_path = f"org_{organization_id}/{reference_id}.{ext}"
-    return reference_id, storage_path
+        # Check extension
+        ext = os.path.splitext(file.filename or "")[1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid file extension. Allowed: .jpg, .jpeg, .png"
+            )
 
+    @staticmethod
+    async def save_image(
+        db: AsyncSession,
+        file: UploadFile,
+        customer_id: int,
+        organization_id: int,
+        conversation_id: int | None = None,
+        message_id: int | None = None,
+    ) -> MediaFile:
+        # Validate
+        MediaService.validate_image(file)
 
-def save_file_to_disk(contents: bytes, storage_path: str) -> None:
-    full_path = os.path.join(UPLOAD_BASE_DIR, storage_path)
-    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    with open(full_path, "wb") as f:
-        f.write(contents)
+        # Read file content to check size
+        content = await file.read()
+        file_size = len(content)
 
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File too large. Maximum size is 5MB"
+            )
 
-async def create_media_asset(
-    db: AsyncSession,
-    *,
-    contents: bytes,
-    mime_type: str,
-    conversation: Conversation,
-): 
-    size_bytes = len(contents)
+        if file_size == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Empty file is not allowed"
+            )
 
-    
-    validate_media(mime_type, size_bytes)
+        # Create upload directory if not exists
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-    
-    reference_id, storage_path = generate_storage_path(conversation.organization_id, mime_type)
+        # Generate unique filename
+        ext = os.path.splitext(file.filename or "")[1].lower()
+        stored_filename = f"{uuid.uuid4().hex}{ext}"
+        file_path = UPLOAD_DIR / stored_filename
 
-    save_file_to_disk(contents, storage_path)
+        # Save file to disk
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
 
+        # Public URL (adjust according to your setup)
+        file_url = f"/uploads/customers/{stored_filename}"
 
-    asset = MediaAsset(
-        reference_id=reference_id,
-        organization_id=conversation.organization_id,
-        customer_id=conversation.customer_id,
-        conversation_id=conversation.id,
-        storage_path=storage_path,
-        mime_type=mime_type,
-        size_bytes=size_bytes,
-    )
-    db.add(asset)
-    await db.commit()
-    await db.refresh(asset)
-
-    return asset
-
-
-async def get_media_asset_for_org(
-    db: AsyncSession, reference_id: str, organization_id: int):
-    from sqlalchemy import select
-
-    result = await db.execute(
-        select(MediaAsset).where(
-            MediaAsset.reference_id == reference_id,
-            MediaAsset.organization_id == organization_id,
+        media = MediaFile(
+            customer_id=customer_id,
+            organization_id=organization_id,
+            conversation_id=conversation_id,
+            message_id=message_id,
+            filename=file.filename,
+            stored_filename=stored_filename,
+            file_path=str(file_path),
+            file_url=file_url,
+            content_type=file.content_type,
+            file_size=file_size,
         )
-    )
-    return result.scalar_one_or_none()
+
+        db.add(media)
+        await db.commit()
+        await db.refresh(media)
+
+        return media

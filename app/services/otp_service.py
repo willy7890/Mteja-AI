@@ -1,12 +1,13 @@
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from fastapi import HTTPException, status
 
 from app.models.otp import OTPCode, OTPChannel, OTPPurpose
 from app.services.email_service import EmailService
+from app.services.sms_service import SMSService
 
 
 class OTPService:
@@ -25,12 +26,12 @@ class OTPService:
         user_id: int | None = None,
         expiry_minutes: int = 10,
     ) -> OTPCode:
-        # Invalidate previous unused OTPs
+
         query = select(OTPCode).where(
             and_(
                 OTPCode.purpose == purpose,
                 OTPCode.is_used == False,
-                OTPCode.expires_at > datetime.utcnow(),
+                OTPCode.expires_at > datetime.now(timezone.utc),
             )
         )
         if email:
@@ -51,7 +52,7 @@ class OTPService:
             code=code,
             channel=channel,
             purpose=purpose,
-            expires_at=datetime.utcnow() + timedelta(minutes=expiry_minutes),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=expiry_minutes),
         )
         db.add(otp)
         await db.commit()
@@ -65,6 +66,14 @@ class OTPService:
                 purpose=purpose.value
             )
             print(f"Email send result: {success}")
+        elif channel == OTPChannel.SMS and phone:
+            print(f"Trying to send SMS to {phone} with OTP {otp.code}")
+            success = await SMSService.send_otp_sms(
+                to=phone,
+                otp_code=otp.code,
+                purpose=purpose.value
+            )
+            print(f"SMS send result: {success}")
 
         return otp
 
@@ -119,7 +128,7 @@ class OTPService:
             )
 
         otp.is_used = True
-        otp.used_at = datetime.utcnow()
+        otp.used_at = datetime.now(timezone.utc)
         await db.commit()
         await db.refresh(otp)
 

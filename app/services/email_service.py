@@ -4,31 +4,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-fm = None
-if settings.MAIL_USERNAME and settings.MAIL_PASSWORD and settings.MAIL_FROM:
-    conf = ConnectionConfig(
-        MAIL_USERNAME=settings.MAIL_USERNAME,
-        MAIL_PASSWORD=settings.MAIL_PASSWORD,
-        MAIL_FROM=settings.MAIL_FROM,
-        MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
-        MAIL_PORT=settings.MAIL_PORT,
-        MAIL_SERVER=settings.MAIL_SERVER,
-        MAIL_STARTTLS=settings.MAIL_STARTTLS,
-        MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
-        USE_CREDENTIALS=True,
-        VALIDATE_CERTS=True,
-    )
-    fm = FastMail(conf)
+conf = ConnectionConfig(
+    MAIL_USERNAME=settings.MAIL_USERNAME,
+    MAIL_PASSWORD=settings.MAIL_PASSWORD,
+    MAIL_FROM=settings.MAIL_FROM,
+    MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
+    MAIL_PORT=settings.MAIL_PORT,
+    MAIL_SERVER=settings.MAIL_SERVER,
+    MAIL_STARTTLS=settings.MAIL_STARTTLS,
+    MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
+    USE_CREDENTIALS=True,
+    VALIDATE_CERTS=True,
+)
+
+fm = FastMail(conf)
 
 
 class EmailService:
     
     @staticmethod
     async def send_email(to: str, subject: str, html: str) -> bool:
-        if fm is None:
-            logger.warning("Email is not configured; skipping email to %s", to)
-            return False
-
         try:
             message = MessageSchema(
                 subject=subject,
