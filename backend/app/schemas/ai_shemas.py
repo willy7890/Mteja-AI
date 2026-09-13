@@ -75,4 +75,4 @@ class GenerateReplyResponse(BaseModel):
 class TestPromptResponse(BaseModel):
     content: str
     tokens_used: int
-    latency_ms: float~
+    latency_ms: float

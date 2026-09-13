@@ -1,12 +1,14 @@
+import logging
+
 try:
-    from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+    from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 except ImportError:
     FastMail = None
     MessageSchema = None
     ConnectionConfig = None
     MessageType = None
+
 from app.core.config import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +39,15 @@ if FastMail is not None and mail_settings_ready:
 
 
 class EmailService:
-    
+
     @staticmethod
     async def send_email(to: str, subject: str, html: str) -> bool:
         if fm is None:
-            logger.error("Email delivery is unavailable: fastapi-mail is not installed")
+            logger.error(
+                "Email delivery is unavailable: fastapi-mail is missing or settings are incomplete"
+            )
             return False
+
         try:
             message = MessageSchema(
                 subject=subject,
@@ -58,7 +63,9 @@ class EmailService:
             return False
 
     @staticmethod
-    async def send_otp_email(to: str, otp_code: str, purpose: str = "registration") -> bool:
+    async def send_otp_email(
+        to: str, otp_code: str, purpose: str = "registration"
+    ) -> bool:
         subject = "Your Mteja AI Verification Code"
 
         html = f"""

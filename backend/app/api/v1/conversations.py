@@ -118,9 +118,12 @@ async def create_message(
       content=data.content,
       sender_type=data.sender_type,
       sender_name=(
-        current_user.full_name
-        if data.sender_type in {"agent", "human"}
-        else (conv.customer.name if data.sender_type == "customer" else data.sender_type)
+        data.sender_name
+        or (
+          current_user.full_name
+          if data.sender_type in {"agent", "human"}
+          else (conv.customer.name if data.sender_type == "customer" else data.sender_type)
+        )
       ),
   )
   db.add(message)

@@ -1,23 +1,77 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
     APP_NAME: str = "Mteja AI"
+    SECRET_KEY: str = "super-secret-key-change-this-in-production"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
     DATABASE_URL: str = "postgresql+asyncpg://Mteja_Ai_user:2589Mteja@localhost:5432/mteja_ai_db"
 
-    # Mail Settings
+    # =========================
+    # Email
+    # =========================
     MAIL_USERNAME: str = ""
     MAIL_PASSWORD: str = ""
     MAIL_FROM: str = "noreply@mteja.ai"
+    MAIL_FROM_NAME: str = "Mteja AI"
     MAIL_PORT: int = 587
     MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
 
-    AT_USERNAME: str = "sandbox"  
-    AT_API_KEY: str = "your_api_key_here"
+    # =========================
+    # Africa's Talking
+    # =========================
+    AT_USERNAME: str = "sandbox"
+    AT_API_KEY: str = ""
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    # =========================
+    # SMS
+    # =========================
+    SMS_PROVIDER: str = "africastalking"
+    SMS_API_KEY: str = ""
+    SMS_API_SECRET: str = ""
+    SMS_FROM: str = ""
+
+    # =========================
+    # Telegram
+    # =========================
+    TELEGRAM_BOT_TOKEN: str = ""
+
+    # =========================
+    # Meta webhooks and APIs
+    # =========================
+    META_APP_SECRET: str = ""
+    WHATSAPP_VERIFY_TOKEN: str = ""
+    WHATSAPP_ACCESS_TOKEN: str = ""
+    WHATSAPP_PHONE_NUMBER_ID: str = ""
+    FACEBOOK_VERIFY_TOKEN: str = ""
+    FACEBOOK_ACCESS_TOKEN: str = ""
+    FACEBOOK_PAGE_ID: str = ""
+    INSTAGRAM_VERIFY_TOKEN: str = ""
+    INSTAGRAM_ACCESS_TOKEN: str = ""
+    INSTAGRAM_PAGE_ID: str = ""
+
+    def model_post_init(self, __context):
+        allowed_prefixes = (
+            "postgresql+asyncpg://",
+            "sqlite+aiosqlite://",
+            "sqlite://",
+        )
+
+        if not self.DATABASE_URL.startswith(allowed_prefixes):
+            raise ValueError(
+                "DATABASE_URL must use PostgreSQL with asyncpg or "
+                "SQLite with aiosqlite"
+            )
+
 
 settings = Settings()

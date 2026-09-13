@@ -18,7 +18,6 @@ async def test_register_user_success(client):
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email_fails(client):
-    # Jaribu kusajili mara ya pili barua pepe ile ile
     response = await client.post(
         "/api/v1/auth/register",
         json={
