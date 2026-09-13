@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 
 from fastapi import APIRouter, Depends, Query, Request, HTTPException, status
 from fastapi.responses import PlainTextResponse
@@ -13,11 +14,15 @@ from app.models.customer import Customer
 from app.agents.orchestrator import Orchestrator
 from app.services.telegram_service import format_telegram_reply
 from app.core.config import settings
+from app.services.webhook_logs import (
+    log_inbound_safe,
+    mark_signature_verified_safe,
+    mark_processed_safe,
+)
 
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 orchestrator = Orchestrator()
-
 
 
 async def find_customer_by_identity(
@@ -26,14 +31,10 @@ async def find_customer_by_identity(
     identity: str,
     channel: str,
 ):
-
-   
     if not identity:
         return None
 
-    
     if channel == "telegram":
-    
         query = select(Customer).where(
             Customer.organization_id == organization_id,
             Customer.phone == identity,
@@ -60,14 +61,17 @@ async def find_customer_by_identity(
     return result.scalar_one_or_none()
 
 
-def _verify_meta_signature(body: bytes, signature: str | None) -> None:
+def _verify_meta_signature(body: bytes, signature: str | None) -> bool:
+    """
+    Returns True/False instead of only raising, so the caller can log the
+    outcome before deciding whether to reject the request.
+    """
     if not settings.META_APP_SECRET:
-        return
+        return True
     if not signature or not signature.startswith("sha256="):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature")
+        return False
     expected = hmac.new(settings.META_APP_SECRET.encode(), body, hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(signature.removeprefix("sha256="), expected):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature")
+    return hmac.compare_digest(signature.removeprefix("sha256="), expected)
 
 
 def _verify_token(provider: str, supplied_token: str | None) -> str:
@@ -75,6 +79,14 @@ def _verify_token(provider: str, supplied_token: str | None) -> str:
     if not expected or not hmac.compare_digest(supplied_token or "", expected):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid verification token")
     return expected
+
+
+def _safe_parse_body(body: bytes) -> dict:
+    """Best-effort JSON parse for logging purposes only — never raises."""
+    try:
+        return json.loads(body)
+    except Exception:  # noqa: BLE001
+        return {"_unparsed_body": body.decode(errors="replace")[:2000]}
 
 
 async def _handle_meta_webhook(
@@ -85,53 +97,91 @@ async def _handle_meta_webhook(
     message_service: MessageService,
 ):
     body = await request.body()
-    _verify_meta_signature(body, request.headers.get("x-hub-signature-256"))
+    raw_for_log = _safe_parse_body(body)
+
+    log_id = await log_inbound_safe(
+        db,
+        channel=provider,
+        raw_payload=raw_for_log,
+        headers=dict(request.headers),
+        organization_id=organization_id,
+    )
+
+    signature_valid = _verify_meta_signature(body, request.headers.get("x-hub-signature-256"))
+    await mark_signature_verified_safe(db, log_id, valid=signature_valid)
+
+    if not signature_valid:
+        await mark_processed_safe(db, log_id, status="rejected", error_message="invalid_signature")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature")
+
     try:
         payload = await request.json()
     except Exception as exc:
+        await mark_processed_safe(db, log_id, status="failed", error_message="invalid_json_payload")
         raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
 
-    normalized = message_service._get_adapter(provider).normalize_incoming(payload)
-    if not normalized.get("from") or not normalized.get("content"):
-        return {"ok": True, "message": "Ignored event"}
+    try:
+        normalized = message_service._get_adapter(provider).normalize_incoming(payload)
+        if not normalized.get("from") or not normalized.get("content"):
+            await mark_processed_safe(
+                db, log_id, status="processed",
+                event_type="ignored_event", normalized_payload=normalized,
+            )
+            return {"ok": True, "message": "Ignored event"}
 
-    customer = await find_customer_by_identity(
-        db=db,
-        organization_id=organization_id,
-        identity=normalized["from"],
-        channel=provider,
-    )
-    if not customer:
-        return {"ok": True, "message": "Customer not found"}
+        customer = await find_customer_by_identity(
+            db=db,
+            organization_id=organization_id,
+            identity=normalized["from"],
+            channel=provider,
+        )
+        if not customer:
+            await mark_processed_safe(
+                db, log_id, status="processed",
+                event_type="unknown_customer", normalized_payload=normalized,
+            )
+            return {"ok": True, "message": "Customer not found"}
 
-    message = await message_service.handle_incoming(
-        db=db,
-        organization_id=organization_id,
-        channel=provider,
-        raw_payload=payload,
-        customer_id=customer.id,
-    )
-    result = await orchestrator.run(
-        db=db,
-        organization_id=organization_id,
-        conversation_id=str(message.conversation_id),
-        message=normalized["content"],
-    )
-    reply = await message_service.send(
-        db=db,
-        organization_id=organization_id,
-        conversation_id=message.conversation_id,
-        content=result.get("response") or result.get("reply") or "Thanks for your message.",
-        channel=provider,
-        sender_name=result.get("agent", "mteja-ai"),
-    )
-    return {
-        "ok": True,
-        "message_id": message.id,
-        "conversation_id": message.conversation_id,
-        "reply_id": reply.external_id,
-        "reply_status": reply.status,
-    }
+        message = await message_service.handle_incoming(
+            db=db,
+            organization_id=organization_id,
+            channel=provider,
+            raw_payload=payload,
+            customer_id=customer.id,
+        )
+        result = await orchestrator.run(
+            db=db,
+            organization_id=organization_id,
+            conversation_id=str(message.conversation_id),
+            message=normalized["content"],
+        )
+        reply = await message_service.send(
+            db=db,
+            organization_id=organization_id,
+            conversation_id=message.conversation_id,
+            content=result.get("response") or result.get("reply") or "Thanks for your message.",
+            channel=provider,
+            sender_name=result.get("agent", "mteja-ai"),
+        )
+
+        await mark_processed_safe(
+            db, log_id, status="processed",
+            event_type="message_processed",
+            normalized_payload=normalized,
+            related_conversation_id=message.conversation_id,
+            related_message_id=message.id,
+        )
+
+        return {
+            "ok": True,
+            "message_id": message.id,
+            "conversation_id": message.conversation_id,
+            "reply_id": reply.external_id,
+            "reply_status": reply.status,
+        }
+    except Exception as exc:
+        await mark_processed_safe(db, log_id, status="failed", error_message=str(exc)[:1000])
+        raise
 
 
 def _meta_verification(
@@ -213,65 +263,91 @@ async def telegram_webhook(
     db: AsyncSession = Depends(get_db),
     message_service: MessageService = Depends(get_message_service),
 ):
-    
+    body = await request.body()
+    raw_for_log = _safe_parse_body(body)
+
+    log_id = await log_inbound_safe(
+        db,
+        channel="telegram",
+        raw_payload=raw_for_log,
+        headers=dict(request.headers),
+        organization_id=organization_id,
+    )
+
     try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+        payload = json.loads(body)
+    except Exception as exc:
+        await mark_processed_safe(db, log_id, status="failed", error_message="invalid_json_payload")
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
 
-    
-    adapter = message_service._get_adapter("telegram")
-    normalized = adapter.normalize_incoming(payload)
+    try:
+        adapter = message_service._get_adapter("telegram")
+        normalized = adapter.normalize_incoming(payload)
 
-    if not normalized.get("from") or not normalized.get("content"):
-        
-        return {"ok": True, "message": "Ignored"}
+        if not normalized.get("from") or not normalized.get("content"):
+            await mark_processed_safe(
+                db, log_id, status="processed",
+                event_type="ignored_event", normalized_payload=normalized,
+            )
+            return {"ok": True, "message": "Ignored"}
 
-    
-    customer = await find_customer_by_identity(
-        db=db,
-        organization_id=organization_id,
-        identity=normalized["from"],
-        channel="telegram",
-    )
+        customer = await find_customer_by_identity(
+            db=db,
+            organization_id=organization_id,
+            identity=normalized["from"],
+            channel="telegram",
+        )
 
-    if not customer:
-        
-        print(f"[Telegram] Unknown customer: {normalized['from']}")
-        return {"ok": True, "message": "Customer not found"}
+        if not customer:
+            await mark_processed_safe(
+                db, log_id, status="processed",
+                event_type="unknown_customer", normalized_payload=normalized,
+            )
+            print(f"[Telegram] Unknown customer: {normalized['from']}")
+            return {"ok": True, "message": "Customer not found"}
 
-    
-    message = await message_service.handle_incoming(
-        db=db,
-        organization_id=organization_id,
-        channel="telegram",
-        raw_payload=payload,
-        customer_id=customer.id,
-    )
+        message = await message_service.handle_incoming(
+            db=db,
+            organization_id=organization_id,
+            channel="telegram",
+            raw_payload=payload,
+            customer_id=customer.id,
+        )
 
-    result = await orchestrator.run(
-        db=db,
-        organization_id=organization_id,
-        conversation_id=str(message.conversation_id),
-        message=normalized["content"],
-    )
-    reply_text = format_telegram_reply(result)
-    reply = await message_service.send(
-        db=db,
-        organization_id=organization_id,
-        conversation_id=message.conversation_id,
-        content=reply_text,
-        channel="telegram",
-        sender_name=result.get("agent", "mteja-ai"),
-    )
+        result = await orchestrator.run(
+            db=db,
+            organization_id=organization_id,
+            conversation_id=str(message.conversation_id),
+            message=normalized["content"],
+        )
+        reply_text = format_telegram_reply(result)
+        reply = await message_service.send(
+            db=db,
+            organization_id=organization_id,
+            conversation_id=message.conversation_id,
+            content=reply_text,
+            channel="telegram",
+            sender_name=result.get("agent", "mteja-ai"),
+        )
 
-    return {
-        "ok": True,
-        "message_id": message.id,
-        "conversation_id": message.conversation_id,
-        "reply_id": reply.external_id,
-        "reply_status": reply.status,
-    }
+        await mark_processed_safe(
+            db, log_id, status="processed",
+            event_type="message_processed",
+            normalized_payload=normalized,
+            related_conversation_id=message.conversation_id,
+            related_message_id=message.id,
+        )
+
+        return {
+            "ok": True,
+            "message_id": message.id,
+            "conversation_id": message.conversation_id,
+            "reply_id": reply.external_id,
+            "reply_status": reply.status,
+        }
+    except Exception as exc:
+        await mark_processed_safe(db, log_id, status="failed", error_message=str(exc)[:1000])
+        raise
 
 
 @router.post("/email/{organization_id}")
@@ -282,47 +358,73 @@ async def email_webhook(
     message_service: MessageService = Depends(get_message_service),
 ):
     try:
-       
         content_type = request.headers.get("content-type", "")
         if "application/json" in content_type:
             payload = await request.json()
         else:
             form = await request.form()
             payload = dict(form)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid payload")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid payload") from exc
 
-    adapter = message_service._get_adapter("email")
-    normalized = adapter.normalize_incoming(payload)
-
-    if not normalized.get("from"):
-        return {"ok": True, "message": "Ignored - no sender"}
-
-    customer = await find_customer_by_identity(
-        db=db,
-        organization_id=organization_id,
-        identity=normalized["from"],
-        channel="email",
-    )
-
-    if not customer:
-        print(f"[Email] Unknown customer: {normalized['from']}")
-        return {"ok": True, "message": "Customer not found"}
-
-    message = await message_service.handle_incoming(
-        db=db,
-        organization_id=organization_id,
+    log_id = await log_inbound_safe(
+        db,
         channel="email",
         raw_payload=payload,
-        customer_id=customer.id,
+        headers=dict(request.headers),
+        organization_id=organization_id,
     )
 
-    return {
-        "ok": True,
-        "message_id": message.id,
-        "conversation_id": message.conversation_id,
-    }
+    try:
+        adapter = message_service._get_adapter("email")
+        normalized = adapter.normalize_incoming(payload)
 
+        if not normalized.get("from"):
+            await mark_processed_safe(
+                db, log_id, status="processed",
+                event_type="ignored_no_sender", normalized_payload=normalized,
+            )
+            return {"ok": True, "message": "Ignored - no sender"}
+
+        customer = await find_customer_by_identity(
+            db=db,
+            organization_id=organization_id,
+            identity=normalized["from"],
+            channel="email",
+        )
+
+        if not customer:
+            await mark_processed_safe(
+                db, log_id, status="processed",
+                event_type="unknown_customer", normalized_payload=normalized,
+            )
+            print(f"[Email] Unknown customer: {normalized['from']}")
+            return {"ok": True, "message": "Customer not found"}
+
+        message = await message_service.handle_incoming(
+            db=db,
+            organization_id=organization_id,
+            channel="email",
+            raw_payload=payload,
+            customer_id=customer.id,
+        )
+
+        await mark_processed_safe(
+            db, log_id, status="processed",
+            event_type="message_processed",
+            normalized_payload=normalized,
+            related_conversation_id=message.conversation_id,
+            related_message_id=message.id,
+        )
+
+        return {
+            "ok": True,
+            "message_id": message.id,
+            "conversation_id": message.conversation_id,
+        }
+    except Exception as exc:
+        await mark_processed_safe(db, log_id, status="failed", error_message=str(exc)[:1000])
+        raise
 
 
 @router.post("/sms/{organization_id}")
@@ -332,7 +434,6 @@ async def sms_webhook(
     db: AsyncSession = Depends(get_db),
     message_service: MessageService = Depends(get_message_service),
 ):
-    
     try:
         content_type = request.headers.get("content-type", "")
         if "application/json" in content_type:
@@ -340,36 +441,64 @@ async def sms_webhook(
         else:
             form = await request.form()
             payload = dict(form)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid payload")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid payload") from exc
 
-    adapter = message_service._get_adapter("sms")
-    normalized = adapter.normalize_incoming(payload)
-
-    if not normalized.get("from") or not normalized.get("content"):
-        return {"ok": True, "message": "Ignored"}
-
-    customer = await find_customer_by_identity(
-        db=db,
-        organization_id=organization_id,
-        identity=normalized["from"],
-        channel="sms",
-    )
-
-    if not customer:
-        print(f"[SMS] Unknown customer: {normalized['from']}")
-        return {"ok": True, "message": "Customer not found"}
-
-    message = await message_service.handle_incoming(
-        db=db,
-        organization_id=organization_id,
+    log_id = await log_inbound_safe(
+        db,
         channel="sms",
         raw_payload=payload,
-        customer_id=customer.id,
+        headers=dict(request.headers),
+        organization_id=organization_id,
     )
 
-    return {
-        "ok": True,
-        "message_id": message.id,
-        "conversation_id": message.conversation_id,
-    }
+    try:
+        adapter = message_service._get_adapter("sms")
+        normalized = adapter.normalize_incoming(payload)
+
+        if not normalized.get("from") or not normalized.get("content"):
+            await mark_processed_safe(
+                db, log_id, status="processed",
+                event_type="ignored_event", normalized_payload=normalized,
+            )
+            return {"ok": True, "message": "Ignored"}
+
+        customer = await find_customer_by_identity(
+            db=db,
+            organization_id=organization_id,
+            identity=normalized["from"],
+            channel="sms",
+        )
+
+        if not customer:
+            await mark_processed_safe(
+                db, log_id, status="processed",
+                event_type="unknown_customer", normalized_payload=normalized,
+            )
+            print(f"[SMS] Unknown customer: {normalized['from']}")
+            return {"ok": True, "message": "Customer not found"}
+
+        message = await message_service.handle_incoming(
+            db=db,
+            organization_id=organization_id,
+            channel="sms",
+            raw_payload=payload,
+            customer_id=customer.id,
+        )
+
+        await mark_processed_safe(
+            db, log_id, status="processed",
+            event_type="message_processed",
+            normalized_payload=normalized,
+            related_conversation_id=message.conversation_id,
+            related_message_id=message.id,
+        )
+
+        return {
+            "ok": True,
+            "message_id": message.id,
+            "conversation_id": message.conversation_id,
+        }
+    except Exception as exc:
+        await mark_processed_safe(db, log_id, status="failed", error_message=str(exc)[:1000])
+        raise

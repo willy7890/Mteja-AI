@@ -16,6 +16,9 @@ from app.api.broadcast import router as broadcasts_router
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.customer import Customer
+
+from app.api.webhook_logs import router as webhook_logs_router
+
 from app.models.telegram import TelegramLink, TelegramSession
 from app.models import (
     customer,
@@ -186,6 +189,8 @@ app.include_router(analytics_router)
 
 
 
+
+app.include_router(webhook_logs_router)
 
 
 app.include_router(broadcasts_router)
