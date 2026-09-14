@@ -3,10 +3,12 @@
 
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.agents.supervisor import Supervisor
 from app.agents.marketing_agent import MarketingAgent
 from app.agents.followup_agent import FollowupAgent
 from app.models.activity_log import ActivityLog
+from app.models.conversation import Conversation
 from app.agents.sales_agent import SalesAgent
 from app.agents.support_agent import SupportAgent
 
@@ -29,7 +31,13 @@ class Orchestrator:
         conversation_id: str,
         message: str,
     ) -> dict:
-    
+        conversation = (await db.execute(select(Conversation).where(
+            Conversation.id == int(conversation_id),
+            Conversation.organization_id == organization_id,
+        ))).scalar_one_or_none()
+        if conversation is None or conversation.mode != "ai" or conversation.status != "open":
+            return {"blocked": True, "reason": "Conversation is owned by a human agent"}
+
         chosen_agent_name = self.supervisor.route(message)
 
         await self._log(

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -14,10 +15,14 @@ from app.schemas.conversation import (
     ConversationCreate,
     ConversationResponse,
     ConversationUpdate,
+  HandoffRequest,
+  HandoffStatusResponse,
     MessageCreate,
     MessageResponse,
+  ReturnToAIRequest,
 )
-from app.services.agent_service import generate_agent_reply
+from app.services.agent_service import generate_agent_reply, requires_human_handoff
+from app.services.audit_service import notify_agent, record_activity
 
 router = APIRouter(tags=["Unified Inbox"])
 
@@ -132,7 +137,38 @@ async def create_message(
 
   # 2. Automatically trigger AI RAG agent response if in AI mode and message is from customer
   if conv.mode == "ai" and data.sender_type == "customer":
+    if requires_human_handoff(data.content):
+      previous_mode = conv.mode
+      conv.mode = "human"
+      metadata = dict(conv.metadata_ or {})
+      metadata["handoff"] = {
+        "reason": "AI policy or confidence threshold",
+        "previous_mode": previous_mode,
+        "trigger": "ai",
+        "handed_off_at": datetime.now(timezone.utc).isoformat(),
+      }
+      conv.metadata_ = metadata
+      await record_activity(
+        db,
+        organization_id=current_user.organization_id,
+        user_id=None,
+        conversation_id=conv.id,
+        actor="ai",
+        action_type="handoff",
+        description="AI escalated conversation to a human agent",
+        details={"previous_mode": previous_mode},
+      )
+      await db.commit()
+      await db.refresh(message)
+      return message
+
     ai_response_text = await generate_agent_reply(data.content)
+
+    # Handoff may happen while generation is in flight; re-check ownership
+    # before writing any AI reply.
+    await db.refresh(conv)
+    if conv.mode != "ai" or conv.status != "open":
+      return message
 
     ai_message = Message(
       conversation_id=id,
@@ -163,6 +199,14 @@ async def update_conversation(
   if not conv:
     raise HTTPException(status_code=404, detail="Conversation not found")
 
+  if data.assigned_to is not None:
+    agent_result = await db.execute(select(User).where(
+        User.id == data.assigned_to,
+        User.organization_id == current_user.organization_id,
+        User.role.in_(["agent", "admin", "owner"]),
+    ))
+    if agent_result.scalar_one_or_none() is None:
+      raise HTTPException(status_code=404, detail="Assigned agent not found")
   if data.status:
     conv.status = data.status
   if data.assigned_to is not None:
@@ -176,6 +220,7 @@ async def update_conversation(
 @router.post("/{id}/takeover", response_model=ConversationResponse)
 async def takeover_conversation(
     id: int,
+  data: HandoffRequest | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -189,8 +234,112 @@ async def takeover_conversation(
   if not conv:
     raise HTTPException(status_code=404, detail="Conversation not found")
 
+  if conv.status != "open":
+    raise HTTPException(status_code=409, detail="Conversation is not active")
+  assigned_agent_id = data.agent_id if data and data.agent_id is not None else current_user.id
+  agent_result = await db.execute(select(User).where(
+      User.id == assigned_agent_id,
+      User.organization_id == current_user.organization_id,
+      User.role.in_( ["agent", "admin", "owner"]),
+  ))
+  if agent_result.scalar_one_or_none() is None:
+    raise HTTPException(status_code=404, detail="Assigned agent not found")
+  previous_mode = conv.mode
   conv.mode = "human"
-  conv.assigned_to = current_user.id
+  conv.assigned_to = assigned_agent_id
+  reason = data.reason if data else "Manual takeover"
+  metadata = dict(conv.metadata_ or {})
+  metadata["handoff"] = {
+      "reason": reason,
+      "previous_mode": previous_mode,
+      "handed_off_at": datetime.now(timezone.utc).isoformat(),
+  }
+  conv.metadata_ = metadata
+  await record_activity(
+      db,
+      organization_id=current_user.organization_id,
+      user_id=current_user.id,
+      conversation_id=conv.id,
+      actor="human",
+      action_type="handoff",
+      description=reason,
+      details={"previous_mode": previous_mode, "assigned_to": conv.assigned_to},
+  )
+  await db.commit()
+  await db.refresh(conv)
+  await notify_agent({
+      "event": "conversation_handoff",
+      "conversation_id": conv.id,
+      "organization_id": current_user.organization_id,
+      "assigned_to": conv.assigned_to,
+      "reason": reason,
+  })
+  return conv
+
+
+@router.post("/{id}/handoff", response_model=ConversationResponse)
+async def handoff_conversation(
+    id: int,
+    data: HandoffRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+  return await takeover_conversation(id, data, current_user, db)
+
+
+@router.get("/{id}/handoff-status", response_model=HandoffStatusResponse)
+async def handoff_status(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+  result = await db.execute(select(Conversation).where(
+      Conversation.id == id,
+      Conversation.organization_id == current_user.organization_id,
+  ))
+  conv = result.scalar_one_or_none()
+  if not conv:
+    raise HTTPException(status_code=404, detail="Conversation not found")
+  handoff = (conv.metadata_ or {}).get("handoff", {})
+  return HandoffStatusResponse(
+      conversation_id=conv.id,
+      mode=conv.mode,
+      status=conv.status,
+      assigned_to=conv.assigned_to,
+      handoff_reason=handoff.get("reason"),
+      handed_off_at=handoff.get("handed_off_at"),
+  )
+
+
+@router.post("/{id}/return-to-ai", response_model=ConversationResponse)
+async def return_to_ai(
+    id: int,
+    data: ReturnToAIRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+  result = await db.execute(select(Conversation).where(
+      Conversation.id == id,
+      Conversation.organization_id == current_user.organization_id,
+  ))
+  conv = result.scalar_one_or_none()
+  if not conv:
+    raise HTTPException(status_code=404, detail="Conversation not found")
+  previous_mode = conv.mode
+  conv.mode = "ai"
+  metadata = dict(conv.metadata_ or {})
+  metadata["handoff"] = {"reason": data.reason, "previous_mode": previous_mode}
+  conv.metadata_ = metadata
+  await record_activity(
+      db,
+      organization_id=current_user.organization_id,
+      user_id=current_user.id,
+      conversation_id=conv.id,
+      actor="human",
+      action_type="handoff_return",
+      description=data.reason,
+      details={"previous_mode": previous_mode},
+  )
   await db.commit()
   await db.refresh(conv)
   return conv
@@ -213,6 +362,13 @@ async def assign_conversation(
   if not conv:
     raise HTTPException(status_code=404, detail="Conversation not found")
 
+  agent_result = await db.execute(select(User).where(
+      User.id == data.agent_id,
+      User.organization_id == current_user.organization_id,
+      User.role.in_(["agent", "admin", "owner"]),
+  ))
+  if agent_result.scalar_one_or_none() is None:
+    raise HTTPException(status_code=404, detail="Assigned agent not found")
   conv.assigned_to = data.agent_id
   await db.commit()
   await db.refresh(conv)

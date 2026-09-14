@@ -31,7 +31,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { Conversation, ConversationFilter, ChannelType, PageId, ChatMessage } from '../../types';
-import { apiAuthUpload } from '../api/Client';
+import { apiAssetUrl, apiAuthUpload } from '../api/Client';
 
 interface InboxPageProps {
   conversations?: Conversation[];
@@ -58,7 +58,13 @@ export const InboxPage: React.FC<InboxPageProps> = ({
   const [uploadedImage, setUploadedImage] = useState<{ name: string; size: string; url: string } | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [isSendingVoice, setIsSendingVoice] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
 
   const activeConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
 
@@ -82,6 +88,106 @@ export const InboxPage: React.FC<InboxPageProps> = ({
       setUploadError(error instanceof Error ? error.message : 'Image upload failed');
     } finally {
       setIsUploadingImage(false);
+    }
+  };
+
+  const sendVoiceNote = async (audioBlob: Blob) => {
+    if (!activeConv) return;
+    setIsSendingVoice(true);
+    setVoiceError('');
+    try {
+      const extension = audioBlob.type.includes('mp4') ? 'm4a' : 'webm';
+      const audioFile = new File([audioBlob], `voice-note-${Date.now()}.${extension}`, {
+        type: audioBlob.type || 'audio/webm',
+      });
+      const result = await apiAuthUpload('/api/v1/media/voice-note', audioFile, {
+        conversation_id: activeConv.id,
+        include_voice_response: true,
+      });
+      const responseText = result.response?.content || 'Voice message received.';
+      const transcript = result.transcript || 'Voice message';
+      const responseAudioUrl = result.response_audio?.file_url
+        ? apiAssetUrl(result.response_audio.file_url)
+        : '';
+      const voiceMessages: ChatMessage[] = [
+        {
+          id: `voice-${Date.now()}`,
+          sender: 'agent',
+          senderName: 'MtejaAI Assistant',
+          text: responseText,
+          timestamp: 'Just now',
+          isAiReplied: true,
+          intentDetected: 'Voice response',
+          attachments: responseAudioUrl ? [{ name: 'AI voice response', size: '', url: responseAudioUrl }] : undefined,
+        },
+      ];
+      setConversations((previous) => previous.map((conversation) => (
+        conversation.id === activeConv.id
+          ? {
+              ...conversation,
+              unread: false,
+              lastMessage: responseText,
+              timestamp: 'Just now',
+              messages: [
+                ...conversation.messages,
+                {
+                  id: `transcript-${Date.now()}`,
+                  sender: 'customer',
+                  senderName: conversation.customerName,
+                  text: transcript,
+                  timestamp: 'Just now',
+                  isAiReplied: false,
+                  intentDetected: 'Voice message',
+                },
+                ...voiceMessages,
+              ],
+            }
+          : conversation
+      )));
+      if (responseAudioUrl) {
+        const audio = new Audio(responseAudioUrl);
+        await audio.play().catch(() => undefined);
+      }
+    } catch (error) {
+      setVoiceError(error instanceof Error ? error.message : 'Voice message failed');
+    } finally {
+      setIsSendingVoice(false);
+    }
+  };
+
+  const toggleVoiceRecording = async () => {
+    if (isSendingVoice) return;
+    if (isRecordingVoice && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+      setIsRecordingVoice(false);
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setVoiceError('Voice recording is not supported in this browser.');
+      return;
+    }
+    try {
+      setVoiceError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const preferredType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      const recorder = new MediaRecorder(stream, { mimeType: preferredType });
+      recordingChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordingChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || preferredType });
+        void sendVoiceNote(blob);
+      };
+      recordingStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecordingVoice(true);
+    } catch (error) {
+      setVoiceError(error instanceof Error ? error.message : 'Microphone permission was denied');
     }
   };
 
@@ -561,10 +667,12 @@ export const InboxPage: React.FC<InboxPageProps> = ({
                     </button>
                     <button
                       type="button"
+                      onClick={() => void toggleVoiceRecording()}
+                      disabled={isSendingVoice || !activeConv}
                       className="p-1.5 rounded-lg hover:bg-[#F7F6F1] hover:text-[#10231C]"
-                      title="Record Swahili/English voice message"
+                      title={isRecordingVoice ? 'Stop and send voice message' : 'Record Swahili/English voice message'}
                     >
-                      <Mic className="w-4 h-4" />
+                      <Mic className={`w-4 h-4 ${isRecordingVoice ? 'text-red-600 animate-pulse' : ''}`} />
                     </button>
                   </div>
 
@@ -587,12 +695,15 @@ export const InboxPage: React.FC<InboxPageProps> = ({
                     </button>
                   </div>
                 </div>
-                {(uploadedImage || uploadError) && (
+                {(uploadedImage || uploadError || voiceError || isRecordingVoice || isSendingVoice) && (
                   <div className="flex items-center justify-between gap-2 text-[11px]">
                     {uploadedImage && (
                       <span className="text-[#287A59]">Attached: {uploadedImage.name} ({uploadedImage.size})</span>
                     )}
                     {uploadError && <span className="text-red-600">{uploadError}</span>}
+                    {voiceError && <span className="text-red-600">{voiceError}</span>}
+                    {isRecordingVoice && <span className="text-red-600">Recording voice message...</span>}
+                    {isSendingVoice && <span className="text-[#287A59]">Transcribing and preparing voice reply...</span>}
                     {uploadedImage && (
                       <button type="button" onClick={() => setUploadedImage(null)} className="text-[#68756F] hover:text-[#10231C]" title="Remove attachment">
                         <X className="w-3.5 h-3.5" />

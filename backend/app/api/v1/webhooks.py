@@ -11,6 +11,7 @@ from app.api.dependencies import get_message_service
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.customer import Customer
+from app.models.conversation import Conversation
 from app.services.message import MessageService
 from app.services.telegram_service import format_telegram_reply
 
@@ -111,6 +112,10 @@ async def _handle_meta_webhook(
         conversation_id=str(message.conversation_id),
         message=normalized["content"],
     )
+    conversation_result = await db.execute(select(Conversation).where(Conversation.id == message.conversation_id))
+    conversation = conversation_result.scalar_one_or_none()
+    if not conversation or conversation.mode != "ai" or conversation.status != "open" or result.get("blocked"):
+        return {"ok": True, "message": "Conversation is owned by a human agent"}
     reply = await message_service.send(
         db=db,
         organization_id=organization_id,

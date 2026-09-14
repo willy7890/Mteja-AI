@@ -42,3 +42,21 @@ class ConversationUpdate(BaseModel):
 
 class AssignRequest(BaseModel):
     agent_id: int
+
+
+class HandoffRequest(BaseModel):
+    reason: str = "Manual handoff"
+    agent_id: Optional[int] = None
+
+
+class HandoffStatusResponse(BaseModel):
+    conversation_id: int
+    mode: str
+    status: str
+    assigned_to: Optional[int] = None
+    handoff_reason: Optional[str] = None
+    handed_off_at: Optional[datetime] = None
+
+
+class ReturnToAIRequest(BaseModel):
+    reason: str = "Returned to AI"
