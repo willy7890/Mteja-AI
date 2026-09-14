@@ -11,6 +11,7 @@ from app.api.router import api_router
 from app.api.v1 import webhooks
 from app.core.config import settings
 from app.core.database import Base, engine
+from app.core.rate_limit import RateLimitMiddleware
 from app.models import (
     activity_log,
     conversation,
@@ -116,6 +117,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RateLimitMiddleware)
 
 # Application Routers
 app.include_router(api_router, prefix="/api")

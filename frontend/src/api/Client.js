@@ -106,4 +106,10 @@ export async function apiAuthUpload(path, file, fields = {}) {
   return handleResponse(res);
 }
 
+export function apiAssetUrl(path) {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 export { ApiError };

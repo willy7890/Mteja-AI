@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     agents,
     ai,
+    admin,
     auth,
     campaigns,
     conversations,
@@ -25,4 +26,5 @@ api_router.include_router(campaigns.router, prefix="/v1/campaigns")
 api_router.include_router(deals.router, prefix="/v1/deals")
 api_router.include_router(leads.router, prefix="/v1/leads")
 api_router.include_router(ai.router, prefix="/v1")
+api_router.include_router(admin.router, prefix="/v1")
 api_router.include_router(media.router, prefix="/v1")

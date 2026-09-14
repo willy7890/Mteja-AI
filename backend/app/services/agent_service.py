@@ -20,6 +20,14 @@ HUMAN_ONLY_CATEGORIES = [
 CONFIDENCE_THRESHOLD = 0.65  # If ML model confidence is < 65%, escalate
 
 
+def requires_human_handoff(user_message: str) -> bool:
+    prediction = classifier_service.classify_message(user_message)
+    return (
+        prediction.get("category") in HUMAN_ONLY_CATEGORIES
+        or prediction.get("confidence", 0.0) < CONFIDENCE_THRESHOLD
+    )
+
+
 def get_llm() -> ChatOpenAI | None:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
