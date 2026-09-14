@@ -37,4 +37,4 @@ class ConversationOut(BaseModel):
 class SendMessageResponse(BaseModel):
     conversation_id: int
     user_message: MessageOut
-    agent_response: MessageOut
+    agent_response: Optional[MessageOut] = None

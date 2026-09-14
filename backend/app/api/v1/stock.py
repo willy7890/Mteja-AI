@@ -8,7 +8,7 @@ from app.models.stock import Stock
 from app.models.user import User
 from app.schemas.stock import StockCreate, StockResponse, StockUpdate
 
-router = APIRouter(prefix="/stock", tags=["Stock"])
+router = APIRouter(tags=["Stock"])
 
 
 @router.post("/", response_model=StockResponse, status_code=status.HTTP_201_CREATED)

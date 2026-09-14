@@ -58,12 +58,31 @@ async def send_message(
     await db.flush()
 
    
+    if conversation.mode != "ai" or conversation.status != "open":
+        await db.commit()
+        await db.refresh(user_message)
+        return SendMessageResponse(
+            conversation_id=conversation.id,
+            user_message=user_message,
+            agent_response=None,
+        )
+
     result = await orchestrator.run(
         db=db,
         organization_id=current_user.organization_id,
         conversation_id=str(conversation.id),
         message=data.content,
     )
+
+    await db.refresh(conversation)
+    if conversation.mode != "ai" or conversation.status != "open":
+        await db.commit()
+        await db.refresh(user_message)
+        return SendMessageResponse(
+            conversation_id=conversation.id,
+            user_message=user_message,
+            agent_response=None,
+        )
 
     
     reply_text = result.get("result", {}).get("message") or str(result.get("result"))

@@ -1,23 +1,22 @@
 import hashlib
 import hmac
 
-from fastapi import APIRouter, Depends, Query, Request, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import PlainTextResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
-from app.api.dependencies import get_message_service
-from app.services.message import MessageService
-from app.models.customer import Customer
 from app.agents.orchestrator import Orchestrator
-from app.services.telegram_service import format_telegram_reply
+from app.api.dependencies import get_message_service
 from app.core.config import settings
-
+from app.core.database import get_db
+from app.models.customer import Customer
+from app.models.conversation import Conversation
+from app.services.message import MessageService
+from app.services.telegram_service import format_telegram_reply
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 orchestrator = Orchestrator()
-
 
 
 async def find_customer_by_identity(
@@ -26,14 +25,10 @@ async def find_customer_by_identity(
     identity: str,
     channel: str,
 ):
-
-   
     if not identity:
         return None
 
-    
     if channel == "telegram":
-    
         query = select(Customer).where(
             Customer.organization_id == organization_id,
             Customer.phone == identity,
@@ -117,6 +112,10 @@ async def _handle_meta_webhook(
         conversation_id=str(message.conversation_id),
         message=normalized["content"],
     )
+    conversation_result = await db.execute(select(Conversation).where(Conversation.id == message.conversation_id))
+    conversation = conversation_result.scalar_one_or_none()
+    if not conversation or conversation.mode != "ai" or conversation.status != "open" or result.get("blocked"):
+        return {"ok": True, "message": "Conversation is owned by a human agent"}
     reply = await message_service.send(
         db=db,
         organization_id=organization_id,
@@ -213,21 +212,17 @@ async def telegram_webhook(
     db: AsyncSession = Depends(get_db),
     message_service: MessageService = Depends(get_message_service),
 ):
-    
     try:
         payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
 
-    
     adapter = message_service._get_adapter("telegram")
     normalized = adapter.normalize_incoming(payload)
 
     if not normalized.get("from") or not normalized.get("content"):
-        
         return {"ok": True, "message": "Ignored"}
 
-    
     customer = await find_customer_by_identity(
         db=db,
         organization_id=organization_id,
@@ -236,11 +231,9 @@ async def telegram_webhook(
     )
 
     if not customer:
-        
         print(f"[Telegram] Unknown customer: {normalized['from']}")
         return {"ok": True, "message": "Customer not found"}
 
-    
     message = await message_service.handle_incoming(
         db=db,
         organization_id=organization_id,
@@ -282,15 +275,14 @@ async def email_webhook(
     message_service: MessageService = Depends(get_message_service),
 ):
     try:
-       
         content_type = request.headers.get("content-type", "")
         if "application/json" in content_type:
             payload = await request.json()
         else:
             form = await request.form()
             payload = dict(form)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid payload")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid payload") from exc
 
     adapter = message_service._get_adapter("email")
     normalized = adapter.normalize_incoming(payload)
@@ -324,7 +316,6 @@ async def email_webhook(
     }
 
 
-
 @router.post("/sms/{organization_id}")
 async def sms_webhook(
     organization_id: int,
@@ -332,7 +323,6 @@ async def sms_webhook(
     db: AsyncSession = Depends(get_db),
     message_service: MessageService = Depends(get_message_service),
 ):
-    
     try:
         content_type = request.headers.get("content-type", "")
         if "application/json" in content_type:
@@ -340,8 +330,8 @@ async def sms_webhook(
         else:
             form = await request.form()
             payload = dict(form)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid payload")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid payload") from exc
 
     adapter = message_service._get_adapter("sms")
     normalized = adapter.normalize_incoming(payload)

@@ -15,7 +15,7 @@ from app.schemas.customer import (
     CustomerCreateRequest,
 )
 
-router = APIRouter(prefix="/customers", tags=["Customers"])
+router = APIRouter(tags=["Customers"])
 
 
 @router.post("/", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)

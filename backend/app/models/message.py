@@ -19,7 +19,6 @@ class Message(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="sent")
     external_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     channel_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-
     detected_language: Mapped[str | None] = mapped_column(String(50), nullable=True)
     language_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     is_sheng: Mapped[bool] = mapped_column(Boolean, default=False)
