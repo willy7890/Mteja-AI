@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -19,7 +19,7 @@ from app.agents.orchestrator import Orchestrator
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
 
-orchestrator = Orchestrator()  
+orchestrator = Orchestrator()
 
 
 @router.post("/messages/send", response_model=SendMessageResponse)
@@ -28,7 +28,7 @@ async def send_message(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    
+    # 1. Tafuta au Tengeneza Conversation
     if data.conversation_id:
         result = await db.execute(
             select(Conversation).where(
@@ -43,12 +43,13 @@ async def send_message(
         conversation = Conversation(
             organization_id=current_user.organization_id,
             customer_id=data.customer_id,
-            channel=data.channel,
+            status="open",
+            mode="ai",  # Hakikisha field name inalingana na Model yako (mode/current_handler)
         )
         db.add(conversation)
-        await db.flush() 
+        await db.flush()
 
-    
+    # 2. Hifadhi Ujumbe wa Mteja (Customer Message)
     user_message = Message(
         conversation_id=conversation.id,
         sender_type="customer",
@@ -57,8 +58,9 @@ async def send_message(
     db.add(user_message)
     await db.flush()
 
-   
-    if conversation.mode != "ai" or conversation.status != "open":
+    # 3. Kama haiko kwenye Mode ya AI au imefungwa, hifadhi na usitishe AI Orchestrator
+    is_ai_mode = getattr(conversation, "mode", None) == "ai" or getattr(conversation, "current_handler", None) == "ai"
+    if not is_ai_mode or conversation.status != "open":
         await db.commit()
         await db.refresh(user_message)
         return SendMessageResponse(
@@ -67,15 +69,25 @@ async def send_message(
             agent_response=None,
         )
 
-    result = await orchestrator.run(
-        db=db,
-        organization_id=current_user.organization_id,
-        conversation_id=str(conversation.id),
-        message=data.content,
-    )
+    # 4. Tekeleza AI Orchestrator
+    try:
+        orch_result = await orchestrator.run(
+            db=db,
+            organization_id=current_user.organization_id,
+            conversation_id=str(conversation.id),
+            message=data.content,
+        )
+    except Exception as e:
+        await db.commit()
+        await db.refresh(user_message)
+        raise HTTPException(
+            status_code=500, detail=f"Hitilafu kwenye uchakataji wa AI: {str(e)}"
+        )
 
+    # 5. Kagua kama kulikuwa na Human Handoff wakati wa Orchestration
     await db.refresh(conversation)
-    if conversation.mode != "ai" or conversation.status != "open":
+    is_ai_mode = getattr(conversation, "mode", None) == "ai" or getattr(conversation, "current_handler", None) == "ai"
+    if not is_ai_mode or conversation.status != "open":
         await db.commit()
         await db.refresh(user_message)
         return SendMessageResponse(
@@ -84,12 +96,25 @@ async def send_message(
             agent_response=None,
         )
 
-    
-    reply_text = result.get("result", {}).get("message") or str(result.get("result"))
+    # 6. Extract Jibu la Agent kwa Usalama
+    reply_text = None
+    if isinstance(orch_result, dict):
+        res_payload = orch_result.get("result")
+        if isinstance(res_payload, dict):
+            reply_text = res_payload.get("message") or res_payload.get("content")
+        elif isinstance(res_payload, str):
+            reply_text = res_payload
+        
+        if not reply_text:
+            reply_text = orch_result.get("message") or "Asante, ujumbe wako umepokelewa."
+
+    agent_name = orch_result.get("agent", "MtejaAI Bot") if isinstance(orch_result, dict) else "MtejaAI Bot"
+
+    # 7. Hifadhi Jibu la AI Agent
     agent_message = Message(
         conversation_id=conversation.id,
         sender_type="agent",
-        sender_name=result.get("agent", "system"),
+        sender_name=agent_name,
         content=reply_text,
     )
     db.add(agent_message)
@@ -148,7 +173,6 @@ async def get_conversation_messages(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-   
     result = await db.execute(
         select(Conversation).where(
             Conversation.id == conversation_id,

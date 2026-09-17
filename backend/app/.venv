@@ -1,1 +1,0 @@
-DATABASE_URL=postgresql+asyncpg://Mteja_Ai_user:2589Mteja@localhost:5432/Mteja_Ai_db
