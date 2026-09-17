@@ -1,18 +1,45 @@
-# backend/app/services/learning_service.py
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from app.models.training_data import TrainingData # Model yako ya kuhifadhia data mpya
+from app.models.training_data import TrainingData
 
-class LearningService:
-    def __init__(self, db: AsyncSession):
-        self.db = db
 
-    async def log_new_interaction(self, question: str, predicted_category: str, is_human_verified: bool = False):
-        """Hifadhi swali jipya la mteja kwa ajili ya retraining ya baadaye."""
-        new_entry = TrainingData(
-            question=question.strip().lower(),
-            category=predicted_category,
-            verified=is_human_verified # True kama lilijibiwa na Human Agent
-        )
-        self.db.add(new_entry)
-        await self.db.commit()
+async def add_training_data(
+    db: AsyncSession,
+    question: str,
+    category: Optional[str] = None,
+    answer: Optional[str] = None,
+    verified: bool = False,
+) -> TrainingData:
+    """Inserts a new training entry into the training_data table."""
+    if not question or not question.strip():
+        raise ValueError("Question is required for training data")
+
+    entry = TrainingData(
+        question=question.strip(),
+        category=category,
+        answer=answer.strip() if answer else None,
+        verified=verified,
+    )
+    db.add(entry)
+    await db.commit()
+    await db.refresh(entry)
+    return entry
+
+
+async def verify_training_data(
+    db: AsyncSession,
+    training_data_id: int,
+    verified_answer: Optional[str] = None,
+) -> TrainingData:
+    """Marks a training sample as verified and optionally updates the target answer."""
+    entry = await db.get(TrainingData, training_data_id)
+    if not entry:
+        raise ValueError("Training data entry not found")
+
+    entry.verified = True
+    if verified_answer:
+        entry.answer = verified_answer.strip()
+
+    await db.commit()
+    await db.refresh(entry)
+    return entry

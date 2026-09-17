@@ -2,215 +2,197 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.agents.engines import process_chat_message
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.conversation import Conversation
-from app.models.customer import Customer
+from app.models.conversation import Conversation, HandlerType, ConversationStatus
 from app.models.message import Message
 from app.models.user import User
 from app.schemas.conversation import (
-    AssignRequest,
-    ConversationCreate,
     ConversationResponse,
-    ConversationUpdate,
     MessageCreate,
     MessageResponse,
+    EscalateRequest,
 )
-from app.services.agent_service import generate_agent_reply
-
-router = APIRouter(tags=["Unified Inbox"])
-
-
-@router.post(
-    "/", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED
+from app.agents.engines import process_chat_message
+from app.services.handoff_service import (
+    assign_agent,
+    escalate_conversation,
+    resolve_conversation,
+    return_to_ai,
 )
-async def create_conversation(
-    data: ConversationCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-  customer_result = await db.execute(
-      select(Customer).where(
-          Customer.id == data.customer_id,
-          Customer.organization_id == current_user.organization_id,
-      )
-  )
-  if customer_result.scalar_one_or_none() is None:
-    raise HTTPException(status_code=404, detail="Customer not found")
 
-  conversation = Conversation(
-      organization_id=current_user.organization_id,
-      customer_id=data.customer_id,
-      channel=data.channel,
-      status=data.status,
-  )
-  db.add(conversation)
-  await db.commit()
-  await db.refresh(conversation)
-  return conversation
+router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
 
-# 1. GET /api/v1/conversations (Multi-tenant + Filtering)
+# ----------------------------------------------------------------------
+# 1. READ ROUTES (List & History)
+# ----------------------------------------------------------------------
 @router.get("/", response_model=List[ConversationResponse])
 async def list_conversations(
-    channel: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    current_handler: Optional[str] = Query(None),
+    assigned_agent_id: Optional[int] = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-  query = select(Conversation).where(
-      Conversation.organization_id == current_user.organization_id
-  )
+    """Lists conversations for the user's organization with optional filters."""
+    query = select(Conversation).where(
+        Conversation.organization_id == current_user.organization_id
+    )
+    if status:
+        query = query.where(Conversation.status == status)
+    if current_handler:
+        query = query.where(Conversation.current_handler == current_handler)
+    if assigned_agent_id is not None:
+        query = query.where(Conversation.assigned_agent_id == assigned_agent_id)
 
-  if channel:
-    query = query.where(Conversation.channel == channel)
-  if status:
-    query = query.where(Conversation.status == status)
-
-  result = await db.execute(query.order_by(Conversation.created_at.desc()))
-  return result.scalars().all()
+    result = await db.execute(query.order_by(Conversation.created_at.desc()))
+    return result.scalars().all()
 
 
-# 2. GET /api/v1/conversations/{id}
 @router.get("/{id}", response_model=ConversationResponse)
 async def get_conversation(
     id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-  query = select(Conversation).where(
-      Conversation.id == id,
-      Conversation.organization_id == current_user.organization_id,
-  )
-  result = await db.execute(query)
-  conv = result.scalar_one_or_none()
-  if not conv:
-    raise HTTPException(status_code=404, detail="Conversation not found")
-  return conv
+    """Retrieves single conversation details."""
+    return await _get_owned_conversation(db, id, current_user.organization_id)
 
 
-# 3. POST /api/v1/conversations/{id}/messages
-@router.post(
-    "/{id}/messages",
-    response_model=MessageResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_message(
+@router.get("/{id}/messages", response_model=List[MessageResponse])
+async def get_conversation_messages(
     id: int,
-    data: MessageCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-  conv_res = await db.execute(
-      select(Conversation).where(
-          Conversation.id == id,
-          Conversation.organization_id == current_user.organization_id,
-      )
-  )
-  conv = conv_res.scalar_one_or_none()
-  if not conv:
-    raise HTTPException(status_code=404, detail="Conversation not found")
-
-  # 1. Save the incoming message
-  message = Message(
-      conversation_id=id,
-      content=data.content,
-      sender_type=data.sender_type,
-      sender_name=(
-        current_user.full_name
-        if data.sender_type in {"agent", "human"}
-        else (conv.customer.name if data.sender_type == "customer" else data.sender_type)
-      ),
-  )
-  db.add(message)
-  await db.commit()
-  await db.refresh(message)
-
-  # 2. Automatically trigger AI RAG agent response if in AI mode and message is from customer
-  if conv.mode == "ai" and data.sender_type == "customer":
-    ai_response_text = await generate_agent_reply(data.content)
-
-    ai_message = Message(
-      conversation_id=id,
-      content=ai_response_text,
-      sender_type="ai",
-      sender_name="MtejaAI",
+    """Retrieves message history for a conversation."""
+    await _get_owned_conversation(db, id, current_user.organization_id)
+    query = (
+        select(Message)
+        .where(Message.conversation_id == id)
+        .order_by(Message.created_at.asc())
     )
-    db.add(ai_message)
-    await db.commit()
-
-  return message
+    result = await db.execute(query)
+    return result.scalars().all()
 
 
-@router.patch("/{id}", response_model=ConversationResponse)
-async def update_conversation(
+# ----------------------------------------------------------------------
+# 2. MESSAGING ROUTE (Unified Entry Point)
+# ----------------------------------------------------------------------
+@router.post("/{id}/messages", response_model=MessageResponse)
+async def send_message(
     id: int,
-    data: ConversationUpdate,
+    payload: MessageCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-  conv_res = await db.execute(
-      select(Conversation).where(
-          Conversation.id == id,
-          Conversation.organization_id == current_user.organization_id,
-      )
-  )
-  conv = conv_res.scalar_one_or_none()
-  if not conv:
-    raise HTTPException(status_code=404, detail="Conversation not found")
+    """Single entry point for sending a message.
 
-  if data.status:
-    conv.status = data.status
-  if data.assigned_to is not None:
-    conv.assigned_to = data.assigned_to
+    - If current_handler is AI: Runs intent engine and appends AI response.
+    - If current_handler is HUMAN: Stores human agent response directly.
+    """
+    conv = await _get_owned_conversation(db, id, current_user.organization_id)
 
-  await db.commit()
-  await db.refresh(conv)
-  return conv
+    # Record incoming message
+    user_msg = Message(
+        conversation_id=conv.id,
+        sender_type=payload.sender_type,  # "customer" or "agent"
+        content=payload.content,
+    )
+    db.add(user_msg)
+    await db.commit()
+    await db.refresh(user_msg)
+
+    # If incoming from customer and AI is active, run through engine
+    if payload.sender_type == "customer" and conv.current_handler == HandlerType.AI.value:
+        engine_result = await process_chat_message(
+            db=db,
+            conversation=conv,
+            user_message=payload.content,
+        )
+
+        if engine_result.get("message"):
+            ai_msg = Message(
+                conversation_id=conv.id,
+                sender_type="ai",
+                content=engine_result["message"],
+            )
+            db.add(ai_msg)
+            await db.commit()
+
+    return user_msg
 
 
+# ----------------------------------------------------------------------
+# 3. TAKEOVER & HANDOFF ROUTES
+# ----------------------------------------------------------------------
 @router.post("/{id}/takeover", response_model=ConversationResponse)
 async def takeover_conversation(
     id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-  conv_res = await db.execute(
-      select(Conversation).where(
-          Conversation.id == id,
-          Conversation.organization_id == current_user.organization_id,
-      )
-  )
-  conv = conv_res.scalar_one_or_none()
-  if not conv:
-    raise HTTPException(status_code=404, detail="Conversation not found")
-
-  conv.mode = "human"
-  conv.assigned_to = current_user.id
-  await db.commit()
-  await db.refresh(conv)
-  return conv
+    """Human agent manually takes over conversation control."""
+    conv = await _get_owned_conversation(db, id, current_user.organization_id)
+    return await escalate_conversation(
+        db, conv, reason="manual_takeover", triggered_by="agent", agent_id=current_user.id
+    )
 
 
-@router.post("/{id}/assign", response_model=ConversationResponse)
-async def assign_conversation(
+@router.post("/{id}/escalate", response_model=ConversationResponse)
+async def escalate(
     id: int,
-    data: AssignRequest,
+    data: EscalateRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-  conv_res = await db.execute(
-      select(Conversation).where(
-          Conversation.id == id,
-          Conversation.organization_id == current_user.organization_id,
-      )
-  )
-  conv = conv_res.scalar_one_or_none()
-  if not conv:
-    raise HTTPException(status_code=404, detail="Conversation not found")
+    """Escalates conversation with explicit reason."""
+    conv = await _get_owned_conversation(db, id, current_user.organization_id)
+    return await escalate_conversation(
+        db, conv, reason=data.reason, triggered_by="agent", agent_id=data.agent_id or current_user.id
+    )
 
-  conv.assigned_to = data.agent_id
-  await db.commit()
-  await db.refresh(conv)
-  return conv
+
+@router.post("/{id}/return-to-ai", response_model=ConversationResponse)
+async def return_to_ai_endpoint(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns conversation control back to AI."""
+    conv = await _get_owned_conversation(db, id, current_user.organization_id)
+    return await return_to_ai(db, conv, agent_id=current_user.id)
+
+
+@router.post("/{id}/resolve", response_model=ConversationResponse)
+async def resolve(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Marks conversation as resolved."""
+    conv = await _get_owned_conversation(db, id, current_user.organization_id)
+    return await resolve_conversation(db, conv, agent_id=current_user.id)
+
+
+# ----------------------------------------------------------------------
+# HELPER
+# ----------------------------------------------------------------------
+async def _get_owned_conversation(
+    db: AsyncSession, conversation_id: int, organization_id: int
+) -> Conversation:
+    result = await db.execute(
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.organization_id == organization_id,
+        )
+    )
+    conv = result.scalar_one_or_none()
+    if not conv:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+    return conv

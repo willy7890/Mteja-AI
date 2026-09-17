@@ -19,7 +19,7 @@ from app.agents.orchestrator import Orchestrator
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
 
-orchestrator = Orchestrator()  
+orchestrator = Orchestrator()
 
 
 @router.post("/messages/send", response_model=SendMessageResponse)
@@ -28,7 +28,6 @@ async def send_message(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    
     if data.conversation_id:
         result = await db.execute(
             select(Conversation).where(
@@ -43,12 +42,12 @@ async def send_message(
         conversation = Conversation(
             organization_id=current_user.organization_id,
             customer_id=data.customer_id,
-            channel=data.channel,
+            status="open",
+            current_handler="ai",
         )
         db.add(conversation)
-        await db.flush() 
+        await db.flush()
 
-    
     user_message = Message(
         conversation_id=conversation.id,
         sender_type="customer",
@@ -57,27 +56,30 @@ async def send_message(
     db.add(user_message)
     await db.flush()
 
-   
-    result = await orchestrator.run(
-        db=db,
-        organization_id=current_user.organization_id,
-        conversation_id=str(conversation.id),
-        message=data.content,
-    )
+    # Only invoke AI orchestrator if the conversation is handled by AI
+    if conversation.current_handler == "ai":
+        result = await orchestrator.run(
+            db=db,
+            organization_id=current_user.organization_id,
+            conversation_id=str(conversation.id),
+            message=data.content,
+        )
 
-    
-    reply_text = result.get("result", {}).get("message") or str(result.get("result"))
-    agent_message = Message(
-        conversation_id=conversation.id,
-        sender_type="agent",
-        sender_name=result.get("agent", "system"),
-        content=reply_text,
-    )
-    db.add(agent_message)
+        reply_text = result.get("result", {}).get("message") or str(result.get("result"))
+        agent_message = Message(
+            conversation_id=conversation.id,
+            sender_type="ai",
+            sender_name=result.get("agent", "system"),
+            content=reply_text,
+        )
+        db.add(agent_message)
+    else:
+        agent_message = None
 
     await db.commit()
     await db.refresh(user_message)
-    await db.refresh(agent_message)
+    if agent_message:
+        await db.refresh(agent_message)
 
     return SendMessageResponse(
         conversation_id=conversation.id,
@@ -129,7 +131,6 @@ async def get_conversation_messages(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-   
     result = await db.execute(
         select(Conversation).where(
             Conversation.id == conversation_id,
