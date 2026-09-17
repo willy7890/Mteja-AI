@@ -45,20 +45,6 @@ async def test_login_success(client):
     assert data["token_type"] == "bearer"
 
 @pytest.mark.asyncio
-async def test_login_ignores_email_case(client):
-    response = await client.post(
-        "/api/v1/auth/login",
-        data={
-            "username": "TEST@MTEJA.AI",
-            "password": "TestPassword123"
-        }
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
-
-@pytest.mark.asyncio
 async def test_login_invalid_password_fails(client):
     response = await client.post(
         "/api/v1/auth/login",

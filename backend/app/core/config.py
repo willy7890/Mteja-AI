@@ -71,7 +71,6 @@ class Settings(BaseSettings):
     VOICE_TRANSCRIPTION_MODEL: str = "whisper-1"
     VOICE_TTS_MODEL: str = "gpt-4o-mini-tts"
     VOICE_TTS_VOICE: str = "alloy"
-    GOOGLE_CLIENT_ID: str = ""
 
     DATABASE_URL: str = "postgresql+asyncpg://Mteja_Ai_user:2589Mteja@localhost:5432/mteja_ai_db"
 

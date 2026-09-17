@@ -28,10 +28,7 @@ async def send_message(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-<<<<<<< HEAD
-=======
-    # 1. Pata au tengeneza Conversation
->>>>>>> origin/develop
+    # 1. Tafuta au Tengeneza Conversation
     if data.conversation_id:
         result = await db.execute(
             select(Conversation).where(
@@ -46,22 +43,13 @@ async def send_message(
         conversation = Conversation(
             organization_id=current_user.organization_id,
             customer_id=data.customer_id,
-<<<<<<< HEAD
             status="open",
-            current_handler="ai",
-=======
-            channel=data.channel,
-            mode="ai",
-            status="open"
->>>>>>> origin/develop
+            mode="ai",  # Hakikisha field name inalingana na Model yako (mode/current_handler)
         )
         db.add(conversation)
         await db.flush()
 
-<<<<<<< HEAD
-=======
-    # 2. Hifadhi Message ya Mteja
->>>>>>> origin/develop
+    # 2. Hifadhi Ujumbe wa Mteja (Customer Message)
     user_message = Message(
         conversation_id=conversation.id,
         sender_type="customer",
@@ -70,12 +58,9 @@ async def send_message(
     db.add(user_message)
     await db.flush()
 
-<<<<<<< HEAD
-    # Only invoke AI orchestrator if the conversation is handled by AI
-    if conversation.current_handler == "ai":
-=======
-    # 3. Kama haiko tayari kwa AI au imefungwa, Hifadhi na Rudisha bila jibu la Agent
-    if conversation.mode != "ai" or conversation.status != "open":
+    # 3. Kama haiko kwenye Mode ya AI au imefungwa, hifadhi na usitishe AI Orchestrator
+    is_ai_mode = getattr(conversation, "mode", None) == "ai" or getattr(conversation, "current_handler", None) == "ai"
+    if not is_ai_mode or conversation.status != "open":
         await db.commit()
         await db.refresh(user_message)
         return SendMessageResponse(
@@ -84,39 +69,25 @@ async def send_message(
             agent_response=None,
         )
 
-    # 4. Tekeleza Orchestrator
+    # 4. Tekeleza AI Orchestrator
     try:
->>>>>>> origin/develop
-        result = await orchestrator.run(
+        orch_result = await orchestrator.run(
             db=db,
             organization_id=current_user.organization_id,
             conversation_id=str(conversation.id),
             message=data.content,
         )
-<<<<<<< HEAD
-
-        reply_text = result.get("result", {}).get("message") or str(result.get("result"))
-        agent_message = Message(
-            conversation_id=conversation.id,
-            sender_type="ai",
-            sender_name=result.get("agent", "system"),
-            content=reply_text,
-        )
-        db.add(agent_message)
-    else:
-        agent_message = None
-=======
     except Exception as e:
-        # Ikitokea error kwenye AI, hifadhi angalau message ya user
         await db.commit()
         await db.refresh(user_message)
         raise HTTPException(
-            status_code=500, detail=f"Orchestration processing error: {str(e)}"
+            status_code=500, detail=f"Hitilafu kwenye uchakataji wa AI: {str(e)}"
         )
 
-    # 5. Refresh Conversation kuangalia kama Human Takeover ilitokea
+    # 5. Kagua kama kulikuwa na Human Handoff wakati wa Orchestration
     await db.refresh(conversation)
-    if conversation.mode != "ai" or conversation.status != "open":
+    is_ai_mode = getattr(conversation, "mode", None) == "ai" or getattr(conversation, "current_handler", None) == "ai"
+    if not is_ai_mode or conversation.status != "open":
         await db.commit()
         await db.refresh(user_message)
         return SendMessageResponse(
@@ -125,32 +96,32 @@ async def send_message(
             agent_response=None,
         )
 
-    # 6. Extract Reply Text kwa Ulinzi (Safe Parsing)
+    # 6. Extract Jibu la Agent kwa Usalama
     reply_text = None
-    if isinstance(result, dict):
-        res_payload = result.get("result")
+    if isinstance(orch_result, dict):
+        res_payload = orch_result.get("result")
         if isinstance(res_payload, dict):
             reply_text = res_payload.get("message") or res_payload.get("content")
         elif isinstance(res_payload, str):
             reply_text = res_payload
         
         if not reply_text:
-            reply_text = result.get("message") or "Asante kwa ujumbe wako."
+            reply_text = orch_result.get("message") or "Asante, ujumbe wako umepokelewa."
+
+    agent_name = orch_result.get("agent", "MtejaAI Bot") if isinstance(orch_result, dict) else "MtejaAI Bot"
 
     # 7. Hifadhi Jibu la AI Agent
     agent_message = Message(
         conversation_id=conversation.id,
         sender_type="agent",
-        sender_name=result.get("agent", "MtejaAI Bot") if isinstance(result, dict) else "MtejaAI Bot",
+        sender_name=agent_name,
         content=reply_text,
     )
     db.add(agent_message)
->>>>>>> origin/develop
 
     await db.commit()
     await db.refresh(user_message)
-    if agent_message:
-        await db.refresh(agent_message)
+    await db.refresh(agent_message)
 
     return SendMessageResponse(
         conversation_id=conversation.id,
@@ -202,10 +173,6 @@ async def get_conversation_messages(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-<<<<<<< HEAD
-=======
-    # Thititisha muundo wa conversation kwanza
->>>>>>> origin/develop
     result = await db.execute(
         select(Conversation).where(
             Conversation.id == conversation_id,
