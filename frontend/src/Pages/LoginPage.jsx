@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
 import { apiPostForm } from '../api/Client';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -17,6 +19,21 @@ function LoginPage({ t }) {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [pendingTokens, setPendingTokens] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', refreshToken);
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const inputStyle = (fieldName, hasError) => ({
     background: t.bg,
@@ -53,12 +70,44 @@ function LoginPage({ t }) {
         password,
       });
 
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
+      await apiPost('/api/v1/auth/send-otp', {
+        email,
+        channel: 'email',
+        purpose: 'login',
+      });
 
-      navigate('/dashboard');
+      setPendingTokens(data);
+      setOtpStep(true);
     } catch (err) {
       setSubmitError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleVerifyOtp(e) {
+    e.preventDefault();
+    setSubmitError('');
+
+    if (!/^\d{6}$/.test(otp)) {
+      setSubmitError('Enter the 6-digit code sent to your email.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await apiPost('/api/v1/auth/verify-otp', {
+        email,
+        code: otp,
+        purpose: 'login',
+      });
+
+      localStorage.setItem('access_token', pendingTokens.access_token);
+      localStorage.setItem('refresh_token', pendingTokens.refresh_token);
+      navigate('/dashboard');
+    } catch (err) {
+      setSubmitError(err.message || 'Invalid OTP. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -71,7 +120,7 @@ function LoginPage({ t }) {
           Welcome back
         </h1>
         <p className="text-sm mb-8" style={{ color: t.muted }}>
-          Log in to your MtejaAI account.
+          {otpStep ? `Enter the code sent to ${email}.` : 'Log in to your MtejaAI account.'}
         </p>
 
         {submitError && (
@@ -83,6 +132,51 @@ function LoginPage({ t }) {
           </div>
         )}
 
+        {otpStep ? (
+          <form className="space-y-4" onSubmit={handleVerifyOtp} noValidate>
+            <div>
+              <label className="text-xs font-medium block mb-1.5" style={{ color: t.muted }}>
+                Verification code
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                className="w-full px-4 py-2.5 rounded-xl text-sm tracking-[0.35em] text-center outline-none transition-colors"
+                style={inputStyle('otp', !!submitError)}
+                autoFocus
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3 rounded-xl font-medium transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100"
+              style={{ background: t.accent, color: t.accentText }}
+            >
+              {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+              {isSubmitting ? 'Verifying…' : 'Verify and log in'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOtpStep(false);
+                setOtp('');
+                setPendingTokens(null);
+                setSubmitError('');
+              }}
+              className="w-full text-sm hover:opacity-70"
+              style={{ color: t.muted }}
+            >
+              Back to login
+            </button>
+          </form>
+        ) : (
         <form className="space-y-4" onSubmit={handleSubmit} noValidate>
           <div>
             <label className="text-xs font-medium block mb-1.5" style={{ color: t.muted }}>
@@ -164,16 +258,21 @@ function LoginPage({ t }) {
             {isSubmitting ? 'Logging in…' : 'Log in'}
           </button>
         </form>
+        )}
 
-        <div className="flex items-center gap-3 my-6">
+        {!otpStep && <div className="flex items-center gap-3 my-6">
           <div className="flex-1 h-px" style={{ background: t.border }} />
           <span className="text-xs" style={{ color: t.muted }}>
             or continue with
           </span>
           <div className="flex-1 h-px" style={{ background: t.border }} />
-        </div>
+        </div>}
 
-        <button
+        {!otpStep && <button
+          type="button"
+          onClick={() => {
+            window.location.href = `${API_BASE_URL}/api/v1/auth/google`;
+          }}
           className="w-full py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors"
           style={{ border: `1px solid ${t.border}`, color: t.text }}
         >
@@ -184,14 +283,14 @@ function LoginPage({ t }) {
             <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.6 2.3-6.3 0-11.7-3.6-13.6-8.8l-7.9 6.4C6.5 42.6 14.6 48 24 48z"/>
           </svg>
           Continue with Google
-        </button>
+        </button>}
 
-        <p className="text-center text-sm mt-8" style={{ color: t.muted }}>
+        {!otpStep && <p className="text-center text-sm mt-8" style={{ color: t.muted }}>
           Don't have an account?{' '}
           <Link to="/signup" className="font-medium" style={{ color: t.accent }}>
             Sign up free
           </Link>
-        </p>
+        </p>}
       </div>
     </div>
   );

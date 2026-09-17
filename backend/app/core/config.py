@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Mteja AI"
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+<<<<<<< HEAD
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_WINDOW_SECONDS: int = 60
     RATE_LIMIT_OTP_SEND: int = 5
@@ -71,6 +72,12 @@ class Settings(BaseSettings):
     VOICE_TRANSCRIPTION_MODEL: str = "whisper-1"
     VOICE_TTS_MODEL: str = "gpt-4o-mini-tts"
     VOICE_TTS_VOICE: str = "alloy"
+=======
+    FRONTEND_URL: str = "http://localhost:5173"
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
+>>>>>>> 36b92d0 (google created)
 
     DATABASE_URL: str = "postgresql+asyncpg://Mteja_Ai_user:2589Mteja@localhost:5432/mteja_ai_db"
 
