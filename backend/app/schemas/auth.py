@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
@@ -11,6 +11,10 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 
 class TokenResponse(BaseModel):
@@ -26,5 +30,11 @@ class UserResponse(BaseModel):
     organization_id: int
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    # Inaruhusu Pydantic kusoma data kutoka kwenye SQLAlchemy ORM model
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+    model_config = ConfigDict(from_attributes=True)
