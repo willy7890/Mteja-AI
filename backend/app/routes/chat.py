@@ -28,7 +28,10 @@ async def send_message(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+<<<<<<< HEAD
+=======
     # 1. Pata au tengeneza Conversation
+>>>>>>> origin/develop
     if data.conversation_id:
         result = await db.execute(
             select(Conversation).where(
@@ -43,14 +46,22 @@ async def send_message(
         conversation = Conversation(
             organization_id=current_user.organization_id,
             customer_id=data.customer_id,
+<<<<<<< HEAD
+            status="open",
+            current_handler="ai",
+=======
             channel=data.channel,
             mode="ai",
             status="open"
+>>>>>>> origin/develop
         )
         db.add(conversation)
         await db.flush()
 
+<<<<<<< HEAD
+=======
     # 2. Hifadhi Message ya Mteja
+>>>>>>> origin/develop
     user_message = Message(
         conversation_id=conversation.id,
         sender_type="customer",
@@ -59,6 +70,10 @@ async def send_message(
     db.add(user_message)
     await db.flush()
 
+<<<<<<< HEAD
+    # Only invoke AI orchestrator if the conversation is handled by AI
+    if conversation.current_handler == "ai":
+=======
     # 3. Kama haiko tayari kwa AI au imefungwa, Hifadhi na Rudisha bila jibu la Agent
     if conversation.mode != "ai" or conversation.status != "open":
         await db.commit()
@@ -71,12 +86,26 @@ async def send_message(
 
     # 4. Tekeleza Orchestrator
     try:
+>>>>>>> origin/develop
         result = await orchestrator.run(
             db=db,
             organization_id=current_user.organization_id,
             conversation_id=str(conversation.id),
             message=data.content,
         )
+<<<<<<< HEAD
+
+        reply_text = result.get("result", {}).get("message") or str(result.get("result"))
+        agent_message = Message(
+            conversation_id=conversation.id,
+            sender_type="ai",
+            sender_name=result.get("agent", "system"),
+            content=reply_text,
+        )
+        db.add(agent_message)
+    else:
+        agent_message = None
+=======
     except Exception as e:
         # Ikitokea error kwenye AI, hifadhi angalau message ya user
         await db.commit()
@@ -116,10 +145,12 @@ async def send_message(
         content=reply_text,
     )
     db.add(agent_message)
+>>>>>>> origin/develop
 
     await db.commit()
     await db.refresh(user_message)
-    await db.refresh(agent_message)
+    if agent_message:
+        await db.refresh(agent_message)
 
     return SendMessageResponse(
         conversation_id=conversation.id,
@@ -171,7 +202,10 @@ async def get_conversation_messages(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+<<<<<<< HEAD
+=======
     # Thititisha muundo wa conversation kwanza
+>>>>>>> origin/develop
     result = await db.execute(
         select(Conversation).where(
             Conversation.id == conversation_id,

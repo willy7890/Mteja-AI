@@ -1,57 +1,85 @@
 import os
-from pathlib import Path
-
 import joblib
-import pandas as pd
-from sqlalchemy import create_engine
+from typing import List, Dict, Any
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
+from sqlalchemy import select, create_engine
+from sqlalchemy.orm import Session
 
-# Database Connection (Adjust connection string)
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATASET_PATH = PROJECT_ROOT / "app" / "data" / "mteja_ai_tanzania_dataset.csv"
-MODEL_PATH = PROJECT_ROOT / "app" / "ml_models" / "mteja_category_classifier.pkl"
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+from app.core.config import settings
+from app.core.database import AsyncSessionLocal
+from app.models.training_data import TrainingData
 
-def retrain_model():
-    # 1. Load Original Dataset
-    df_base = pd.read_csv(DATASET_PATH)
-    text_column = "question" if "question" in df_base.columns else "customer"
+# Path configured for app/scripts/ structure (points to root project /models directory)
+MODEL_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../models"))
+MODEL_PATH = os.path.join(MODEL_DIR, "intent_classifier.pkl")
 
-    # 2. Fetch New Interactions from Database
-    if DATABASE_URL:
-        engine = create_engine(DATABASE_URL)
-        df_new = pd.read_sql(
-            "SELECT question, category FROM training_data WHERE verified = TRUE",
-            engine,
-        )
-    else:
-        df_new = pd.DataFrame(columns=["question", "category"])
 
-    # 3. Combine Old and New Data (Adaptive Learning)
-    df_combined = pd.concat(
-        [df_base[[text_column, "category"]].rename(columns={text_column: "question"}), df_new],
-        ignore_index=True,
-    )
-    df_combined = df_combined.dropna().drop_duplicates(subset=['question'])
+def train_and_save_pipeline(texts: List[str], labels: List[str]) -> str:
+    """Trains TF-IDF + LogisticRegression pipeline and exports artifact."""
+    os.makedirs(MODEL_DIR, exist_ok=True)
 
-    X = df_combined['question'].astype(str).str.lower().str.strip()
-    y = df_combined['category']
-
-    # 4. Train Updated Pipeline
     pipeline = Pipeline([
-        ('tfidf', TfidfVectorizer(ngram_range=(1, 2))),
-        ('classifier', MultinomialNB(alpha=0.1))
+        ("tfidf", TfidfVectorizer(ngram_range=(1, 2), min_df=1)),
+        ("clf", LogisticRegression(class_weight="balanced", C=1.0)),
     ])
-    
-    print(f"Retraining model with {len(df_combined)} total examples...")
-    pipeline.fit(X, y)
+    pipeline.fit(texts, labels)
 
-    # 5. Overwrite the Trained Artifact
-    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipeline, MODEL_PATH)
-    print(f"Model updated successfully: {MODEL_PATH}")
+    print(f"[AUTO-RETRAIN] Saved model artifact to: {MODEL_PATH}")
+    return MODEL_PATH
+
+
+async def run_async_retraining_job() -> Dict[str, Any]:
+    """Async retraining pipeline for FastAPI background tasks."""
+    async with AsyncSessionLocal() as db:
+        query = (
+            select(TrainingData)
+            .where(TrainingData.verified.is_(True))
+            .order_by(TrainingData.created_at.asc())
+        )
+        result = await db.execute(query)
+        dataset: List[TrainingData] = result.scalars().all()
+
+        if len(dataset) < 5:
+            print(f"[AUTO-RETRAIN] Insufficient verified data ({len(dataset)} items). Skipping.")
+            return {"status": "skipped", "reason": "insufficient_data", "count": len(dataset)}
+
+        print(f"[AUTO-RETRAIN] Training model with {len(dataset)} verified samples (Async)...")
+        texts = [data.text for data in dataset]
+        labels = [data.category for data in dataset]
+
+        path = train_and_save_pipeline(texts, labels)
+        return {"status": "success", "artifact_path": path, "count": len(dataset)}
+
+
+def run_sync_retraining_job() -> Dict[str, Any]:
+    """Sync retraining pipeline for Standalone Scripts, Airflow, or Cron jobs."""
+    sync_engine = create_engine(settings.SYNC_DATABASE_URL, pool_pre_ping=True)
+
+    try:
+        with Session(sync_engine) as db:
+            query = (
+                select(TrainingData)
+                .where(TrainingData.verified.is_(True))
+                .order_by(TrainingData.created_at.asc())
+            )
+            dataset = db.scalars(query).all()
+
+            if len(dataset) < 5:
+                print(f"[AUTO-RETRAIN] Insufficient verified data ({len(dataset)} items). Skipping.")
+                return {"status": "skipped", "reason": "insufficient_data", "count": len(dataset)}
+
+            print(f"[AUTO-RETRAIN] Training model with {len(dataset)} verified samples (Sync)...")
+            texts = [data.text for data in dataset]
+            labels = [data.category for data in dataset]
+
+            path = train_and_save_pipeline(texts, labels)
+            return {"status": "success", "artifact_path": path, "count": len(dataset)}
+    finally:
+        sync_engine.dispose()
+
 
 if __name__ == "__main__":
-    retrain_model()
+    run_sync_retraining_job()

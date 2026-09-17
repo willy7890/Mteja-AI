@@ -1,5 +1,10 @@
-from logging.config import fileConfig
+# In alembic/env.py
+from app.core.database import Base
+import app.models  # Cleanly imports everything registered in __init__.py
 
+<<<<<<< HEAD
+target_metadata = Base.metadata
+=======
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
@@ -84,3 +89,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+>>>>>>> origin/develop
