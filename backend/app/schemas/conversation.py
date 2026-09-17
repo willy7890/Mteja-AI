@@ -6,7 +6,12 @@ from pydantic import BaseModel, ConfigDict
 # --- Message Schemas ---
 class MessageBase(BaseModel):
     content: str
+<<<<<<< HEAD
     sender_type: str  # "customer", "agent", or "ai"
+=======
+    sender_type: str = "customer"  # 'customer', 'agent', 'ai'
+    sender_name: Optional[str] = None
+>>>>>>> origin/develop
 
 
 class MessageCreate(BaseModel):
@@ -48,4 +53,27 @@ class ConversationResponse(ConversationBase):
     updated_at: Optional[datetime] = None
     messages: List[MessageResponse] = []
 
+<<<<<<< HEAD
     model_config = ConfigDict(from_attributes=True)
+=======
+class AssignRequest(BaseModel):
+    agent_id: int
+
+
+class HandoffRequest(BaseModel):
+    reason: str = "Manual handoff"
+    agent_id: Optional[int] = None
+
+
+class HandoffStatusResponse(BaseModel):
+    conversation_id: int
+    mode: str
+    status: str
+    assigned_to: Optional[int] = None
+    handoff_reason: Optional[str] = None
+    handed_off_at: Optional[datetime] = None
+
+
+class ReturnToAIRequest(BaseModel):
+    reason: str = "Returned to AI"
+>>>>>>> origin/develop

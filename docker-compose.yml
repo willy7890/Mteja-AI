@@ -20,7 +20,7 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - backend/.env.example
+      - backend/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,7 +35,7 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - backend/.env.example
+      - backend/.env
     depends_on:
       postgres:
         condition: service_healthy

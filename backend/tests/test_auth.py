@@ -18,7 +18,6 @@ async def test_register_user_success(client):
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email_fails(client):
-    # Jaribu kusajili mara ya pili barua pepe ile ile
     response = await client.post(
         "/api/v1/auth/register",
         json={
@@ -37,6 +36,20 @@ async def test_login_success(client):
         "/api/v1/auth/login",
         data={
             "username": "test@mteja.ai",
+            "password": "TestPassword123"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+@pytest.mark.asyncio
+async def test_login_ignores_email_case(client):
+    response = await client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "TEST@MTEJA.AI",
             "password": "TestPassword123"
         }
     )

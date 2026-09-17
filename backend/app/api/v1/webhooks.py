@@ -1,177 +1,365 @@
-import base64
 import hashlib
 import hmac
-from fastapi import APIRouter, Depends, Query, Request, status
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import PlainTextResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.orchestrator import Orchestrator
+from app.api.dependencies import get_message_service
+from app.core.config import settings
 from app.core.database import get_db
-from app.services.agent_service import generate_agent_reply
-from app.services.client import (
-    WhatsAppClient,
-    FacebookClient,
-    InstagramClient,
-    TelegramClient,
-    SMSClient,
-    TikTokClient,
-    TwitterClient,
-)
+from app.models.customer import Customer
+from app.models.conversation import Conversation
+from app.services.message import MessageService
+from app.services.telegram_service import format_telegram_reply
 
-router = APIRouter(tags=["Multi-Channel Webhooks"])
+router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
+orchestrator = Orchestrator()
 
 
-# ==========================================
-# 1. WHATSAPP WEBHOOKS
-# ==========================================
-@router.get("/whatsapp", status_code=status.HTTP_200_OK)
-async def verify_whatsapp(
-    mode: str = Query(None, alias="hub.mode"),
-    token: str = Query(None, alias="hub.verify_token"),
-    challenge: str = Query(None, alias="hub.challenge"),
+async def find_customer_by_identity(
+    db: AsyncSession,
+    organization_id: int,
+    identity: str,
+    channel: str,
 ):
-  if mode == "subscribe" and token == "mtejaai_secure_verify_token":
-    return int(challenge)
-  return {"error": "Verification failed"}
+    if not identity:
+        return None
+
+    if channel == "telegram":
+        query = select(Customer).where(
+            Customer.organization_id == organization_id,
+            Customer.phone == identity,
+        )
+    elif channel == "sms":
+        query = select(Customer).where(
+            Customer.organization_id == organization_id,
+            Customer.phone == identity,
+        )
+    elif channel == "email":
+        query = select(Customer).where(
+            Customer.organization_id == organization_id,
+            Customer.email == identity,
+        )
+    elif channel in {"whatsapp", "facebook", "instagram"}:
+        query = select(Customer).where(
+            Customer.organization_id == organization_id,
+            Customer.phone == identity,
+        )
+    else:
+        return None
+
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
 
 
-@router.post("/whatsapp", status_code=status.HTTP_200_OK)
-async def whatsapp_webhook(request: Request):
-  body = await request.json()
-  try:
-    entry = body.get("entry", [{}])[0]
-    changes = entry.get("changes", [{}])[0]
-    messages = changes.get("value", {}).get("messages", [])
-
-    if messages:
-      msg = messages[0]
-      phone = msg.get("from")
-      text = msg.get("text", {}).get("body")
-      if phone and text:
-        reply = await generate_agent_reply(text)
-        await WhatsAppClient.send_whatsapp_reply(phone, reply)
-  except Exception as e:
-    print(f"WhatsApp webhook error: {e}")
-  return {"status": "success"}
+def _verify_meta_signature(body: bytes, signature: str | None) -> None:
+    if not settings.META_APP_SECRET:
+        return
+    if not signature or not signature.startswith("sha256="):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature")
+    expected = hmac.new(settings.META_APP_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature.removeprefix("sha256="), expected):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature")
 
 
-# ==========================================
-# 2. FACEBOOK & INSTAGRAM WEBHOOKS
-# ==========================================
-@router.get("/meta", status_code=status.HTTP_200_OK)
-async def verify_meta(
-    mode: str = Query(None, alias="hub.mode"),
-    token: str = Query(None, alias="hub.verify_token"),
-    challenge: str = Query(None, alias="hub.challenge"),
+def _verify_token(provider: str, supplied_token: str | None) -> str:
+    expected = getattr(settings, f"{provider.upper()}_VERIFY_TOKEN", "")
+    if not expected or not hmac.compare_digest(supplied_token or "", expected):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid verification token")
+    return expected
+
+
+async def _handle_meta_webhook(
+    provider: str,
+    organization_id: int,
+    request: Request,
+    db: AsyncSession,
+    message_service: MessageService,
 ):
-  if mode == "subscribe" and token == "mtejaai_secure_verify_token":
-    return int(challenge)
-  return {"error": "Verification failed"}
+    body = await request.body()
+    _verify_meta_signature(body, request.headers.get("x-hub-signature-256"))
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
+
+    normalized = message_service._get_adapter(provider).normalize_incoming(payload)
+    if not normalized.get("from") or not normalized.get("content"):
+        return {"ok": True, "message": "Ignored event"}
+
+    customer = await find_customer_by_identity(
+        db=db,
+        organization_id=organization_id,
+        identity=normalized["from"],
+        channel=provider,
+    )
+    if not customer:
+        return {"ok": True, "message": "Customer not found"}
+
+    message = await message_service.handle_incoming(
+        db=db,
+        organization_id=organization_id,
+        channel=provider,
+        raw_payload=payload,
+        customer_id=customer.id,
+    )
+    result = await orchestrator.run(
+        db=db,
+        organization_id=organization_id,
+        conversation_id=str(message.conversation_id),
+        message=normalized["content"],
+    )
+    conversation_result = await db.execute(select(Conversation).where(Conversation.id == message.conversation_id))
+    conversation = conversation_result.scalar_one_or_none()
+    if not conversation or conversation.mode != "ai" or conversation.status != "open" or result.get("blocked"):
+        return {"ok": True, "message": "Conversation is owned by a human agent"}
+    reply = await message_service.send(
+        db=db,
+        organization_id=organization_id,
+        conversation_id=message.conversation_id,
+        content=result.get("response") or result.get("reply") or "Thanks for your message.",
+        channel=provider,
+        sender_name=result.get("agent", "mteja-ai"),
+    )
+    return {
+        "ok": True,
+        "message_id": message.id,
+        "conversation_id": message.conversation_id,
+        "reply_id": reply.external_id,
+        "reply_status": reply.status,
+    }
 
 
-@router.post("/facebook", status_code=status.HTTP_200_OK)
-async def facebook_webhook(request: Request):
-  body = await request.json()
-  try:
-    for entry in body.get("entry", []):
-      for event in entry.get("messaging", []):
-        sender_id = event.get("sender", {}).get("id")
-        text = event.get("message", {}).get("text")
-        if sender_id and text:
-          reply = await generate_agent_reply(text)
-          await FacebookClient.send_facebook_reply(sender_id, reply)
-  except Exception as e:
-    print(f"Facebook webhook error: {e}")
-  return {"status": "success"}
+def _meta_verification(
+    provider: str,
+    mode: str | None,
+    verify_token: str | None,
+    challenge: str | None,
+):
+    if mode != "subscribe" or not challenge:
+        raise HTTPException(status_code=400, detail="Invalid webhook verification request")
+    _verify_token(provider, verify_token)
+    return PlainTextResponse(challenge)
 
 
-@router.post("/instagram", status_code=status.HTTP_200_OK)
-async def instagram_webhook(request: Request):
-  body = await request.json()
-  try:
-    for entry in body.get("entry", []):
-      for event in entry.get("messaging", []):
-        sender_id = event.get("sender", {}).get("id")
-        text = event.get("message", {}).get("text")
-        if sender_id and text:
-          reply = await generate_agent_reply(text)
-          await InstagramClient.send_instagram_reply(sender_id, reply)
-  except Exception as e:
-    print(f"Instagram webhook error: {e}")
-  return {"status": "success"}
+@router.get("/whatsapp/{organization_id}")
+async def verify_whatsapp_webhook(
+    organization_id: int,
+    mode: str | None = Query(None, alias="hub.mode"),
+    verify_token: str | None = Query(None, alias="hub.verify_token"),
+    challenge: str | None = Query(None, alias="hub.challenge"),
+):
+    return _meta_verification("whatsapp", mode, verify_token, challenge)
 
 
-# ==========================================
-# 3. TELEGRAM WEBHOOK
-# ==========================================
-@router.post("/telegram", status_code=status.HTTP_200_OK)
-async def telegram_webhook(request: Request):
-  body = await request.json()
-  try:
-    message = body.get("message", {})
-    chat_id = message.get("chat", {}).get("id")
-    text = message.get("text")
-    if chat_id and text:
-      reply = await generate_agent_reply(text)
-      await TelegramClient.send_telegram_reply(str(chat_id), reply)
-  except Exception as e:
-    print(f"Telegram webhook error: {e}")
-  return {"status": "success"}
+@router.post("/whatsapp/{organization_id}")
+async def whatsapp_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    message_service: MessageService = Depends(get_message_service),
+):
+    return await _handle_meta_webhook("whatsapp", organization_id, request, db, message_service)
 
 
-# ==========================================
-# 4. SMS (AFRICA'S TALKING) WEBHOOK
-# ==========================================
-@router.post("/sms", status_code=status.HTTP_200_OK)
-async def sms_webhook(request: Request):
-  try:
-    form_data = await request.form()
-    phone = form_data.get("from")
-    text = form_data.get("text")
-    if phone and text:
-      reply = await generate_agent_reply(text)
-      await SMSClient.send_sms_reply(phone, reply)
-  except Exception as e:
-    print(f"SMS webhook error: {e}")
-  return {"status": "success"}
+@router.get("/facebook/{organization_id}")
+async def verify_facebook_webhook(
+    organization_id: int,
+    mode: str | None = Query(None, alias="hub.mode"),
+    verify_token: str | None = Query(None, alias="hub.verify_token"),
+    challenge: str | None = Query(None, alias="hub.challenge"),
+):
+    return _meta_verification("facebook", mode, verify_token, challenge)
 
 
-# ==========================================
-# 5. TIKTOK WEBHOOK
-# ==========================================
-@router.post("/tiktok", status_code=status.HTTP_200_OK)
-async def tiktok_webhook(request: Request):
-  body = await request.json()
-  try:
-    event = body.get("data", {})
-    sender_id = event.get("sender_id")
-    text = event.get("content", {}).get("text")
-    if sender_id and text:
-      reply = await generate_agent_reply(text)
-      await TikTokClient.send_tiktok_reply(sender_id, reply)
-  except Exception as e:
-    print(f"TikTok webhook error: {e}")
-  return {"status": "success"}
+@router.post("/facebook/{organization_id}")
+async def facebook_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    message_service: MessageService = Depends(get_message_service),
+):
+    return await _handle_meta_webhook("facebook", organization_id, request, db, message_service)
 
 
-# ==========================================
-# 6. TWITTER / X WEBHOOK
-# ==========================================
-@router.get("/twitter", status_code=status.HTTP_200_OK)
-async def twitter_crc(crc_token: str = Query(..., alias="crc_token")):
-  # Handle Twitter CRC verification handshake
-  return {"response_token": f"sha256=verified"}
+@router.get("/instagram/{organization_id}")
+async def verify_instagram_webhook(
+    organization_id: int,
+    mode: str | None = Query(None, alias="hub.mode"),
+    verify_token: str | None = Query(None, alias="hub.verify_token"),
+    challenge: str | None = Query(None, alias="hub.challenge"),
+):
+    return _meta_verification("instagram", mode, verify_token, challenge)
 
 
-@router.post("/twitter", status_code=status.HTTP_200_OK)
-async def twitter_webhook(request: Request):
-  body = await request.json()
-  try:
-    for event in body.get("direct_message_events", []):
-      message_create = event.get("message_create", {})
-      sender_id = message_create.get("sender_id")
-      text = message_create.get("message_data", {}).get("text")
-      if sender_id and text:
-        reply = await generate_agent_reply(text)
-        await TwitterClient.send_twitter_reply(sender_id, reply)
-  except Exception as e:
-    print(f"Twitter webhook error: {e}")
-  return {"status": "success"}
+@router.post("/instagram/{organization_id}")
+async def instagram_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    message_service: MessageService = Depends(get_message_service),
+):
+    return await _handle_meta_webhook("instagram", organization_id, request, db, message_service)
+
+
+@router.post("/telegram/{organization_id}")
+async def telegram_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    message_service: MessageService = Depends(get_message_service),
+):
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
+
+    adapter = message_service._get_adapter("telegram")
+    normalized = adapter.normalize_incoming(payload)
+
+    if not normalized.get("from") or not normalized.get("content"):
+        return {"ok": True, "message": "Ignored"}
+
+    customer = await find_customer_by_identity(
+        db=db,
+        organization_id=organization_id,
+        identity=normalized["from"],
+        channel="telegram",
+    )
+
+    if not customer:
+        print(f"[Telegram] Unknown customer: {normalized['from']}")
+        return {"ok": True, "message": "Customer not found"}
+
+    message = await message_service.handle_incoming(
+        db=db,
+        organization_id=organization_id,
+        channel="telegram",
+        raw_payload=payload,
+        customer_id=customer.id,
+    )
+
+    result = await orchestrator.run(
+        db=db,
+        organization_id=organization_id,
+        conversation_id=str(message.conversation_id),
+        message=normalized["content"],
+    )
+    reply_text = format_telegram_reply(result)
+    reply = await message_service.send(
+        db=db,
+        organization_id=organization_id,
+        conversation_id=message.conversation_id,
+        content=reply_text,
+        channel="telegram",
+        sender_name=result.get("agent", "mteja-ai"),
+    )
+
+    return {
+        "ok": True,
+        "message_id": message.id,
+        "conversation_id": message.conversation_id,
+        "reply_id": reply.external_id,
+        "reply_status": reply.status,
+    }
+
+
+@router.post("/email/{organization_id}")
+async def email_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    message_service: MessageService = Depends(get_message_service),
+):
+    try:
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            payload = await request.json()
+        else:
+            form = await request.form()
+            payload = dict(form)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid payload") from exc
+
+    adapter = message_service._get_adapter("email")
+    normalized = adapter.normalize_incoming(payload)
+
+    if not normalized.get("from"):
+        return {"ok": True, "message": "Ignored - no sender"}
+
+    customer = await find_customer_by_identity(
+        db=db,
+        organization_id=organization_id,
+        identity=normalized["from"],
+        channel="email",
+    )
+
+    if not customer:
+        print(f"[Email] Unknown customer: {normalized['from']}")
+        return {"ok": True, "message": "Customer not found"}
+
+    message = await message_service.handle_incoming(
+        db=db,
+        organization_id=organization_id,
+        channel="email",
+        raw_payload=payload,
+        customer_id=customer.id,
+    )
+
+    return {
+        "ok": True,
+        "message_id": message.id,
+        "conversation_id": message.conversation_id,
+    }
+
+
+@router.post("/sms/{organization_id}")
+async def sms_webhook(
+    organization_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    message_service: MessageService = Depends(get_message_service),
+):
+    try:
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            payload = await request.json()
+        else:
+            form = await request.form()
+            payload = dict(form)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid payload") from exc
+
+    adapter = message_service._get_adapter("sms")
+    normalized = adapter.normalize_incoming(payload)
+
+    if not normalized.get("from") or not normalized.get("content"):
+        return {"ok": True, "message": "Ignored"}
+
+    customer = await find_customer_by_identity(
+        db=db,
+        organization_id=organization_id,
+        identity=normalized["from"],
+        channel="sms",
+    )
+
+    if not customer:
+        print(f"[SMS] Unknown customer: {normalized['from']}")
+        return {"ok": True, "message": "Customer not found"}
+
+    message = await message_service.handle_incoming(
+        db=db,
+        organization_id=organization_id,
+        channel="sms",
+        raw_payload=payload,
+        customer_id=customer.id,
+    )
+
+    return {
+        "ok": True,
+        "message_id": message.id,
+        "conversation_id": message.conversation_id,
+    }
