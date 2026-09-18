@@ -5,7 +5,7 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-<<<<<<< HEAD
+
     PROJECT_NAME: str = "MTEJA AI API"
     APP_NAME: str = "MTEJA AI API"
 
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         elif "sqlite+aiosqlite://" in url:
             return url.replace("sqlite+aiosqlite://", "sqlite://", 1)
         return url
-=======
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",
@@ -131,7 +131,7 @@ class Settings(BaseSettings):
                 "DATABASE_URL must use PostgreSQL with asyncpg or "
                 "SQLite with aiosqlite"
             )
->>>>>>> origin/develop
+
 
 
 settings = Settings()

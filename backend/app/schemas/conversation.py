@@ -1,17 +1,13 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # --- Message Schemas ---
 class MessageBase(BaseModel):
     content: str
-<<<<<<< HEAD
-    sender_type: str  # "customer", "agent", or "ai"
-=======
-    sender_type: str = "customer"  # 'customer', 'agent', 'ai'
+    sender_type: str = "customer"  # "customer", "agent", or "ai"
     sender_name: Optional[str] = None
->>>>>>> origin/develop
 
 
 class MessageCreate(BaseModel):
@@ -33,29 +29,6 @@ class EscalateRequest(BaseModel):
     agent_id: Optional[int] = None
 
 
-# --- Conversation Schemas ---
-class ConversationBase(BaseModel):
-    status: str
-    current_handler: str
-    assigned_agent_id: Optional[int] = None
-
-
-class ConversationCreate(BaseModel):
-    customer_id: int
-    organization_id: int
-
-
-class ConversationResponse(ConversationBase):
-    id: int
-    customer_id: int
-    organization_id: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    messages: List[MessageResponse] = []
-
-<<<<<<< HEAD
-    model_config = ConfigDict(from_attributes=True)
-=======
 class AssignRequest(BaseModel):
     agent_id: int
 
@@ -76,4 +49,26 @@ class HandoffStatusResponse(BaseModel):
 
 class ReturnToAIRequest(BaseModel):
     reason: str = "Returned to AI"
->>>>>>> origin/develop
+
+
+# --- Conversation Schemas ---
+class ConversationBase(BaseModel):
+    status: str
+    current_handler: str
+    assigned_agent_id: Optional[int] = None
+
+
+class ConversationCreate(BaseModel):
+    customer_id: int
+    organization_id: int
+
+
+class ConversationResponse(ConversationBase):
+    id: int
+    customer_id: int
+    organization_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    messages: List[MessageResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
