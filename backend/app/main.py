@@ -17,6 +17,7 @@ from app.models import (user,organization,customer,activity_log,conversation,mes
 from app.api.router import api_router
 from app.api.analytics import router as analytics_router  # Impoti analytics_router
 from app.api.broadcast import router as broadcast_router
+from app.api.webhook_logs import router as webhook_router
 from app.services.knowledge_service import kb_service
 from app.intergration.telegram.webhook import router as telegram_webhook_router
 from fastapi.staticfiles import StaticFiles
@@ -98,6 +99,7 @@ app.include_router(telegram_webhook_router)
 app.include_router(api_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(broadcast_router)
+app.include_router(webhook_router)
 
 @app.get("/", tags=["Health"])
 async def root():
