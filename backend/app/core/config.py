@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # General App Settings
     PROJECT_NAME: str = "MTEJA AI API"
     APP_NAME: str = "Mteja AI"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./mteja.db"  # badilisha kwenye .env kwa database halisi
     FRONTEND_URL: str = "http://localhost:5173"
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
