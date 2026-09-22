@@ -12,22 +12,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Database Configuration (Inahitajika ili kusoma DATABASE_URL kutoka .env/Render)
+    DATABASE_URL: str = "sqlite+aiosqlite:///./test.db"
+
     # General App Settings
     PROJECT_NAME: str = "MTEJA AI API"
     APP_NAME: str = "Mteja AI"
     FRONTEND_URL: str = "http://localhost:5173"
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-
-    # Google OAuth Credentials
-    GOOGLE_CLIENT_ID: str = ""
-    GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
-
-    # Database URLs
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:2589Mteja@localhost:5432/mteja_ai_db"
-
-    # Rate Limiting
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_WINDOW_SECONDS: int = 60
     RATE_LIMIT_OTP_SEND: int = 5
@@ -44,6 +37,9 @@ class Settings(BaseSettings):
     VOICE_TRANSCRIPTION_MODEL: str = "whisper-1"
     VOICE_TTS_MODEL: str = "gpt-4o-mini-tts"
     VOICE_TTS_VOICE: str = "alloy"
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
 
     # Mail / SMTP Configuration
     MAIL_USERNAME: Optional[str] = None
