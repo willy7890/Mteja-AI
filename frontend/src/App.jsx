@@ -9,7 +9,48 @@ import TermsOfService from './Pages/TermsOfService';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
 import DashboardPage from './Pages/DashboardPage';
 import InboxPage from './Pages/InboxPage';
-import ComingSoon from './component/ComingSoon';
+import CustomersPage from './Pages/CustomersPage';
+import AiAgentPage from './Pages/AiAgentPage';
+import AutomationsPage from './Pages/AutomationPage';
+import AnalyticsPage from './Pages/AnalyticPage';
+import ChannelsPage from './Pages/ChannelsPage';
+import TeamPage from './Pages/TeamPage';
+import BillingPage from './Pages/BillingPage';
+import SettingsPage from './Pages/SettingsPage';
+import NotificationsPage from './Pages/NotificationPage';
+import ProfilePage from './Pages/ProfilePage';
+
+const defaultTeamMembers = [
+  {
+    id: 'owner',
+    name: 'Mteja AI Owner',
+    email: 'owner@mteja.ai',
+    role: 'Owner',
+    status: 'Active',
+    lastActive: 'Active now',
+    conversationsHandled: 0,
+    avatar: 'https://ui-avatars.com/api/?name=Mteja+AI+Owner&background=10231C&color=fff',
+  },
+];
+
+const defaultBillingInfo = {
+  conversationsUsed: 0,
+  conversationsLimit: 2500,
+  aiResponsesUsed: 0,
+  aiResponsesLimit: 2500,
+  nextBillingDate: 'the next billing cycle',
+};
+
+const defaultNotifications = [];
+
+const defaultProfile = {
+  name: 'Mteja AI User',
+  email: 'user@mteja.ai',
+  phone: '',
+  company: 'Mteja AI Workspace',
+  role: 'Owner',
+  avatar: 'https://ui-avatars.com/api/?name=Mteja+AI+User&background=287A59&color=fff',
+};
 
 const iconTemplates = [
   `<path d="M-15 -10 h30 a6 6 0 0 1 6 6 v14 a6 6 0 0 1 -6 6 h-18 l-8 8 v-8 h-4 a6 6 0 0 1 -6 -6 v-14 a6 6 0 0 1 6 -6 z" />`,
@@ -92,16 +133,16 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout t={t} />}>
           <Route index element={<DashboardPage t={t} />} />
           <Route path="inbox" element={<InboxPage t={t} />} />
-          <Route path="customers" element={<ComingSoon t={t} title="Customers" />} />
-          <Route path="ai-agent" element={<ComingSoon t={t} title="AI Agent" />} />
-          <Route path="automations" element={<ComingSoon t={t} title="Automations" />} />
-          <Route path="analytics" element={<ComingSoon t={t} title="Analytics" />} />
-          <Route path="channels" element={<ComingSoon t={t} title="Channels" />} />
-          <Route path="team" element={<ComingSoon t={t} title="Team" />} />
-          <Route path="billing" element={<ComingSoon t={t} title="Billing" />} />
-          <Route path="settings" element={<ComingSoon t={t} title="Settings" />} />
-          <Route path="notifications" element={<ComingSoon t={t} title="Notifications" />} />
-          <Route path="profile" element={<ComingSoon t={t} title="Profile" />} />
+          <Route path="customers" element={<CustomersPage t={t} />} />
+          <Route path="ai-agent" element={<AiAgentPage t={t} />} />
+          <Route path="automations" element={<AutomationsPage t={t} />} />
+          <Route path="analytics" element={<AnalyticsPage t={t} />} />
+          <Route path="channels" element={<ChannelsPage t={t} />} />
+          <Route path="team" element={<TeamPage teamMembers={defaultTeamMembers} />} />
+          <Route path="billing" element={<BillingPage billingInfo={defaultBillingInfo} />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="notifications" element={<NotificationsPage notifications={defaultNotifications} />} />
+          <Route path="profile" element={<ProfilePage user={defaultProfile} />} />
         </Route>
       </Routes>
     </BrowserRouter>

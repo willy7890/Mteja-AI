@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   CreditCard,
   CheckCircle2,
@@ -11,16 +11,18 @@ import {
   ShieldCheck,
   Check
 } from 'lucide-react';
-import { BillingInfo, PageId } from '../../types';
 
-interface BillingPageProps {
-  billingInfo: BillingInfo;
-  onNavigate: (page: PageId) => void;
-}
-
-export const BillingPage: React.FC<BillingPageProps> = ({ billingInfo, onNavigate }) => {
-  const [selectedPlan, setSelectedPlan] = useState<'starter' | 'pro' | 'business'>('pro');
-  const [currencyMode, setCurrencyMode] = useState<'tzs' | 'usd'>('tzs');
+export const BillingPage = ({ billingInfo = {} }) => {
+  const usage = {
+    conversationsUsed: 0,
+    conversationsLimit: 2500,
+    aiResponsesUsed: 0,
+    aiResponsesLimit: 2500,
+    nextBillingDate: 'the next billing cycle',
+    ...billingInfo,
+  };
+  const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [currencyMode, setCurrencyMode] = useState('tzs');
   const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
 
   const plans = [
@@ -127,18 +129,18 @@ export const BillingPage: React.FC<BillingPageProps> = ({ billingInfo, onNavigat
 
           <div>
             <div className="flex justify-between text-xs text-[#68756F] mb-1.5">
-              <span>{billingInfo.conversationsUsed.toLocaleString()} active inquiries</span>
-              <span>{billingInfo.conversationsLimit.toLocaleString()} limit</span>
+              <span>{usage.conversationsUsed.toLocaleString()} active inquiries</span>
+                <span>{usage.conversationsLimit.toLocaleString()} limit</span>
             </div>
             <div className="w-full h-3 bg-[#F7F6F1] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#287A59] rounded-full"
-                style={{ width: `${(billingInfo.conversationsUsed / billingInfo.conversationsLimit) * 100}%` }}
+                style={{ width: `${(usage.conversationsUsed / usage.conversationsLimit) * 100}%` }}
               />
             </div>
           </div>
           <p className="text-[11px] text-[#68756F]">
-            Resets on <b>{billingInfo.nextBillingDate}</b>. Extra volume is billed at TZS 40 per conversation.
+            Resets on <b>{usage.nextBillingDate}</b>. Extra volume is billed at TZS 40 per conversation.
           </p>
         </div>
 
@@ -151,13 +153,13 @@ export const BillingPage: React.FC<BillingPageProps> = ({ billingInfo, onNavigat
 
           <div>
             <div className="flex justify-between text-xs text-[#68756F] mb-1.5">
-              <span>{billingInfo.aiResponsesUsed.toLocaleString()} replies sent</span>
-              <span>{billingInfo.aiResponsesLimit.toLocaleString()} limit</span>
+              <span>{usage.aiResponsesUsed.toLocaleString()} replies sent</span>
+                <span>{usage.aiResponsesLimit.toLocaleString()} limit</span>
             </div>
             <div className="w-full h-3 bg-[#F7F6F1] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#35D98A] rounded-full"
-                style={{ width: `${(billingInfo.aiResponsesUsed / billingInfo.aiResponsesLimit) * 100}%` }}
+                style={{ width: `${(usage.aiResponsesUsed / usage.aiResponsesLimit) * 100}%` }}
               />
             </div>
           </div>
@@ -225,7 +227,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({ billingInfo, onNavigat
                   ) : (
                     <button
                       onClick={() => {
-                        setSelectedPlan(p.id as any);
+                        setSelectedPlan(p.id);
                         setShowUpgradeSuccess(true);
                         setTimeout(() => setShowUpgradeSuccess(false), 2500);
                       }}

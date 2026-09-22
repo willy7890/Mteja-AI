@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Settings,
   Building,
@@ -14,14 +14,9 @@ import {
   Copy,
   CheckCheck
 } from 'lucide-react';
-import { PageId } from '../../types';
 
-interface SettingsPageProps {
-  onNavigate: (page: PageId) => void;
-}
-
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'business' | 'ai' | 'notifications' | 'security' | 'api'>('general');
+export const SettingsPage = () => {
+  const [activeTab, setActiveTab] = useState('general');
   const [saved, setSaved] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
 
@@ -80,7 +75,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
                 isActive
                   ? 'border-[#287A59] text-[#287A59]'

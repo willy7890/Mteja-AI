@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -62,6 +63,7 @@ class Settings(BaseSettings):
 
     # Telegram Integration
     TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_WEBHOOK_URL: Optional[str] = None
 
     # Meta / Facebook / WhatsApp / Instagram Webhooks
     META_APP_SECRET: str = ""
@@ -80,7 +82,14 @@ class Settings(BaseSettings):
         """Ensures async connection string uses an async driver (e.g. asyncpg)."""
         url = self.DATABASE_URL
         if url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        parsed = urlsplit(url)
+        if parsed.hostname and parsed.hostname.endswith("neon.tech"):
+            query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            query.setdefault("ssl", "require")
+            url = urlunsplit(parsed._replace(query=urlencode(query)))
+
         return url
 
     @property
