@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.core.middleware import RateLimitMiddleware  # Impoti middleware
+from app.core.rate_limit import RateLimitMiddleware  # Impoti middleware
 
 # Import all models to ensure Alembic and Base metadata capture full database schemas
 from app.models import (
@@ -28,6 +28,7 @@ from app.api.router import api_router
 from app.api.analytics import router as analytics_router  # Impoti analytics_router
 from app.services.knowledge_service import kb_service
 from app.integrations.telegram.webhook import router as telegram_webhook_router
+from app.routes.telegram import router as telegram_ws_router
 
 # Global variables for ML Artifacts
 model_vectorizer = None
@@ -103,6 +104,7 @@ app.add_middleware(RateLimitMiddleware)
 
 # Primary API & Webhook Routers
 app.include_router(telegram_webhook_router)
+app.include_router(telegram_ws_router)
 app.include_router(api_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api/v1")
 

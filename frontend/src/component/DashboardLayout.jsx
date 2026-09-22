@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { ChannelsPage } from "./ChannelsPage";
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 import { apiGet } from '../api/Client';
+import { useTelegramMessages } from '../hooks/useTelegramMessages'; 
 
 const TOP_LEVEL_PAGES = ['login'];
 
@@ -14,10 +16,11 @@ function DashboardLayout({ t }) {
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
+  const { messages, isConnected } = useTelegramMessages();
+
   const pathParts = location.pathname.split('/').filter(Boolean);
   const currentPage = pathParts[1] || 'dashboard';
 
-  
   useEffect(() => {
     async function loadUser() {
       const token = localStorage.getItem('access_token');
@@ -53,8 +56,6 @@ function DashboardLayout({ t }) {
     navigate('/login');
   }
 
-  // Avoids a flash of the dashboard shell (with stale/placeholder user
-  // info) before we've confirmed the token is actually valid.
   if (loadingUser) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: t.bg, color: t.muted }}>
@@ -74,7 +75,8 @@ function DashboardLayout({ t }) {
         mobileOpen={mobileOpen}
         activeChannelFilter={channelFilter}
         onSelectChannelFilter={setChannelFilter}
-        unreadInboxCount={3}
+        // 3. Tunapitisha idadi halisi ya jumbe mpya kutoka kwenye WebSocket badala ya '3'
+        unreadInboxCount={messages.length} 
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -88,11 +90,13 @@ function DashboardLayout({ t }) {
           onOpenCommandPalette={() => {
             console.log('Command palette not wired yet.');
           }}
-          unreadCount={2}
+          // 4. Mfano wa kuonyesha status ya WebSocket (kama iko Connected au la)
+          unreadCount={messages.length}
         />
 
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          {/* 5. Tunapitisha jumbe zote na status ya connection kwenda kwenye kurasa za ndani (Inbox/Dashboard) */}
+          <Outlet context={{ messages, isConnected }} />
         </main>
       </div>
     </div>

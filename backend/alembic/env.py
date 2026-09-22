@@ -1,10 +1,5 @@
-# In alembic/env.py
-from app.core.database import Base
-import app.models  # Cleanly imports everything registered in __init__.py
+from logging.config import fileConfig
 
-<<<<<<< HEAD
-target_metadata = Base.metadata
-=======
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
@@ -20,8 +15,9 @@ from app.models.media import MediaFile
 from app.models.message import Message
 from app.models.organization import Organization
 from app.models.telegram import TelegramLink, TelegramSession
-import app.models.training_data  # Included training_data model from feature branch
+import app.models.training_data
 from app.models.user import User
+
 
 # Alembic Config object
 config = context.config
@@ -36,12 +32,15 @@ config.set_main_option(
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+
+# Metadata for Alembic autogenerate
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode."""
+    """Run migrations in offline mode."""
     url = config.get_main_option("sqlalchemy.url")
+
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -54,7 +53,7 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection) -> None:
-    """Helper function to run sync migrations over async connection context."""
+    """Run migrations using a synchronous connection."""
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
@@ -65,7 +64,7 @@ def do_run_migrations(connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """In 'online' mode, create an AsyncEngine and associate a connection."""
+    """Run migrations using an async engine."""
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -79,7 +78,7 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode using AsyncIO."""
+    """Run migrations in online mode."""
     import asyncio
 
     asyncio.run(run_async_migrations())
@@ -89,4 +88,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
->>>>>>> origin/develop

@@ -1,115 +1,261 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   MessageSquare,
-  Instagram,
+  Camera,
   Mail,
   PhoneCall,
-  CheckCircle2,
   RefreshCw,
   Settings,
   ExternalLink,
   ShieldCheck,
-  QrCode,
-  Smartphone,
-  Plus,
   X,
-  AlertCircle
+  Send,
+  Loader2,
 } from 'lucide-react';
-import { ChannelIntegration, ChannelType, PageId } from '../../types';
+import { apiAuthPost, apiGet } from '../api/Client';
 
-interface ChannelsPageProps {
-  channels: ChannelIntegration[];
-  onNavigate: (page: PageId) => void;
-}
+const DEFAULT_CHANNELS = [
+  {
+    id: 'whatsapp',
+    type: 'whatsapp',
+    name: 'WhatsApp Business',
+    iconBg: '#25D366',
+    connected: false,
+    accountInfo: 'Not connected',
+    lastSync: '—',
+    statusText: 'Connect to start receiving messages',
+  },
+  {
+    id: 'telegram',
+    type: 'telegram',
+    name: 'Telegram',
+    iconBg: '#229ED9',
+    connected: false,
+    accountInfo: 'Not connected',
+    lastSync: '—',
+    statusText: 'Connect bot to receive messages',
+  },
+  {
+    id: 'instagram',
+    type: 'instagram',
+    name: 'Instagram Direct',
+    iconBg: '#E4405F',
+    connected: false,
+    accountInfo: 'Not connected',
+    lastSync: '—',
+    statusText: 'Connect Meta Business account',
+  },
+  {
+    id: 'email',
+    type: 'email',
+    name: 'Email',
+    iconBg: '#4285F4',
+    connected: false,
+    accountInfo: 'Not connected',
+    lastSync: '—',
+    statusText: 'Connect inbox to sync emails',
+  },
+  {
+    id: 'call',
+    type: 'call',
+    name: 'Phone & Voice',
+    iconBg: '#287A59',
+    connected: false,
+    accountInfo: 'Not connected',
+    lastSync: '—',
+    statusText: 'Connect for missed-call handling',
+  },
+];
 
-export const ChannelsPage: React.FC<ChannelsPageProps> = ({
-  channels: initialChannels,
-  onNavigate,
-}) => {
-  const [channels, setChannels] = useState<ChannelIntegration[]>(initialChannels);
-  const [activeModalChannel, setActiveModalChannel] = useState<ChannelIntegration | null>(null);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
+function ChannelsPage() {
+  const navigate = useNavigate();
+  const [channels, setChannels] = useState(DEFAULT_CHANNELS);
+  const [loading, setLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState(null);
+  const [syncingId, setSyncingId] = useState(null);
+  const [telegramActionLoading, setTelegramActionLoading] = useState(false);
+  const [telegramError, setTelegramError] = useState('');
 
-  const handleSync = (id: string) => {
-    setSyncingId(id);
-    setTimeout(() => {
-      setSyncingId(null);
-    }, 1200);
+  const updateTelegramChannel = (status) => {
+    setChannels((current) =>
+      current.map((channel) => {
+        if (channel.type !== 'telegram') return channel;
+        const bot = status?.bot;
+        const connected = Boolean(status?.connected && status?.webhook?.configured);
+        return {
+          ...channel,
+          connected,
+          accountInfo: connected && bot?.username ? `@${bot.username}` : 'Not connected',
+          lastSync: connected ? 'Just now' : '—',
+          statusText: connected
+            ? 'Receiving Telegram messages'
+            : status?.error || 'Connect bot to receive messages',
+        };
+      })
+    );
   };
 
-  const getChannelIcon = (type: ChannelType) => {
-    switch (type) {
-      case 'whatsapp': return <MessageSquare className="w-6 h-6 text-white" />;
-      case 'instagram': return <Instagram className="w-6 h-6 text-white" />;
-      case 'email': return <Mail className="w-6 h-6 text-white" />;
-      case 'call': return <PhoneCall className="w-6 h-6 text-white" />;
+  const loadTelegramStatus = async () => {
+    try {
+      const status = await apiGet('/api/v1/telegram/status');
+      updateTelegramChannel(status);
+    } catch (error) {
+      updateTelegramChannel({ error: error.message });
     }
   };
 
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      try {
+        await loadTelegramStatus();
+      } catch {
+        await loadTelegramStatus();
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const handleSync = (id) => {
+    setSyncingId(id);
+    if (id === 'telegram') {
+      loadTelegramStatus().finally(() => setSyncingId(null));
+      return;
+    }
+    setTimeout(() => setSyncingId(null), 1000);
+  };
+
+  const handleTelegramAction = async () => {
+    if (!activeModal || activeModal.type !== 'telegram') return;
+    setTelegramActionLoading(true);
+    setTelegramError('');
+    try {
+      const path = activeModal.connected
+        ? '/api/v1/telegram/disconnect'
+        : '/api/v1/telegram/connect';
+      await apiAuthPost(path, {});
+      await loadTelegramStatus();
+      setActiveModal(null);
+    } catch (error) {
+      setTelegramError(error.message || 'Telegram connection failed');
+    } finally {
+      setTelegramActionLoading(false);
+    }
+  };
+
+  const getChannelIcon = (type, size = 'w-6 h-6') => {
+    const cls = `${size} text-white`;
+    switch (type) {
+      case 'whatsapp':
+        return <MessageSquare className={cls} />;
+      case 'telegram':
+        return <Send className={cls} />;
+      case 'instagram':
+        return <Camera className={cls} />;
+      case 'email':
+        return <Mail className={cls} />;
+      case 'call':
+        return <PhoneCall className={cls} />;
+      default:
+        return <MessageSquare className={cls} />;
+    }
+  };
+
+  const connectedCount = channels.filter((c) => c.connected).length;
+
+  if (loading) {
+    return (
+      <div className="p-6 md:p-8 flex items-center justify-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-7 h-7 animate-spin text-[#287A59]" />
+          <p className="text-sm text-[#68756F]">Loading channels...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Top Header */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#10231C] tracking-tight">Channels & Integrations</h2>
+          <h2 className="text-2xl font-bold text-[#10231C] tracking-tight">
+            Channels & Integrations
+          </h2>
           <p className="text-xs text-[#68756F] mt-1">
-            Connect your customer touchpoints into a unified agentic AI pipeline.
+            Connect WhatsApp, Telegram, Instagram, Email and Calls into one inbox.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#35D98A]/20 text-xs font-bold text-[#10231C]">
-            <span className="w-2 h-2 rounded-full bg-[#287A59] animate-pulse" />
-            <span>4 / 4 Channels Operational</span>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F7F6F1] text-xs font-bold text-[#10231C]">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              connectedCount > 0 ? 'bg-[#287A59] animate-pulse' : 'bg-[#68756F]'
+            }`}
+          />
+          <span>
+            {connectedCount} / {channels.length} Connected
           </span>
-        </div>
+        </span>
       </div>
 
-      {/* Security Banner */}
-      <div className="p-4 rounded-2xl bg-[#10231C] text-white flex items-center justify-between">
+      {/* Banner */}
+      <div className="p-4 rounded-2xl bg-[#10231C] text-white flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#287A59] flex items-center justify-center text-white font-bold">
+          <div className="w-9 h-9 rounded-xl bg-[#287A59] flex items-center justify-center">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white">Meta Cloud API & Africa's Talking Telecom Certified</h4>
+            <h4 className="text-xs font-bold text-white">
+              Secure channel connections
+            </h4>
             <p className="text-[11px] text-[#8E9B95] mt-0.5">
-              Zero rate limits, end-to-end encryption, and compliant with Tanzanian data privacy directives.
+              Messages stay encrypted. Only connected channels appear in your Inbox.
             </p>
           </div>
         </div>
         <button
-          onClick={() => onNavigate('inbox')}
+          onClick={() => navigate('/dashboard/inbox')}
           className="hidden sm:inline-flex items-center gap-1 text-xs text-[#35D98A] font-bold hover:underline"
         >
-          <span>Open Unified Inbox</span>
+          Open Unified Inbox
           <ExternalLink className="w-3 h-3" />
         </button>
       </div>
 
-      {/* Integration Cards Grid */}
+      {/* Channel cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {channels.map((ch) => (
           <div
             key={ch.id}
-            className="p-6 rounded-2xl bg-white border border-[#E2E4DF] hover:border-[#287A59]/40 transition-colors shadow-2xs flex flex-col justify-between space-y-5"
+            className="p-6 rounded-2xl bg-white border border-[#E2E4DF] hover:border-[#287A59]/40 transition-colors flex flex-col justify-between space-y-5"
           >
             <div>
-              {/* Header */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-xs"
-                    style={{ backgroundColor: ch.iconBg }}
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: ch.iconBg || '#287A59' }}
                   >
                     {getChannelIcon(ch.type)}
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-[#10231C]">{ch.name}</h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-[#35D98A]" />
-                      <span className="text-xs font-semibold text-[#287A59]">
-                        {ch.connected ? 'Connected & Active' : 'Not Connected'}
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          ch.connected ? 'bg-[#35D98A]' : 'bg-[#68756F]'
+                        }`}
+                      />
+                      <span
+                        className={`text-xs font-semibold ${
+                          ch.connected ? 'text-[#287A59]' : 'text-[#68756F]'
+                        }`}
+                      >
+                        {ch.connected ? 'Connected' : 'Not connected'}
                       </span>
                     </div>
                   </div>
@@ -118,169 +264,165 @@ export const ChannelsPage: React.FC<ChannelsPageProps> = ({
                 <button
                   onClick={() => handleSync(ch.id)}
                   disabled={syncingId === ch.id}
-                  className="p-2 rounded-lg text-[#68756F] hover:bg-[#F7F6F1] hover:text-[#10231C] transition-colors"
-                  title="Force refresh synchronization"
+                  className="p-2 rounded-lg text-[#68756F] hover:bg-[#F7F6F1]"
+                  title="Refresh"
                 >
-                  <RefreshCw className={`w-4 h-4 ${syncingId === ch.id ? 'animate-spin text-[#287A59]' : ''}`} />
+                  <RefreshCw
+                    className={`w-4 h-4 ${
+                      syncingId === ch.id ? 'animate-spin text-[#287A59]' : ''
+                    }`}
+                  />
                 </button>
               </div>
 
-              {/* Account details & sync status */}
               <div className="mt-4 p-3 rounded-xl bg-[#F7F6F1] border border-[#E2E4DF] space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-[#68756F]">Account Identifier:</span>
-                  <span className="font-semibold text-[#10231C] truncate max-w-[200px]">{ch.accountInfo}</span>
+                <div className="flex justify-between gap-2">
+                  <span className="text-[#68756F]">Account:</span>
+                  <span className="font-semibold text-[#10231C] truncate max-w-[180px]">
+                    {ch.accountInfo || '—'}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[#68756F]">Last Synchronization:</span>
-                  <span className="font-medium text-[#10231C]">{ch.lastSync}</span>
+                <div className="flex justify-between gap-2">
+                  <span className="text-[#68756F]">Last sync:</span>
+                  <span className="font-medium text-[#10231C]">
+                    {ch.lastSync || '—'}
+                  </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-2">
                   <span className="text-[#68756F]">Status:</span>
-                  <span className="text-[#287A59] font-medium">{ch.statusText}</span>
+                  <span
+                    className={
+                      ch.connected ? 'text-[#287A59] font-medium' : 'text-[#68756F]'
+                    }
+                  >
+                    {ch.statusText || (ch.connected ? 'Active' : 'Not connected')}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center justify-between pt-3 border-t border-[#E2E4DF] text-xs">
               <button
-                onClick={() => setActiveModalChannel(ch)}
+                onClick={() => setActiveModal(ch)}
                 className="font-bold text-[#14201B] hover:text-[#287A59] flex items-center gap-1.5"
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>Configure Settings</span>
+                Configure
               </button>
 
               <button
-                onClick={() => setActiveModalChannel(ch)}
+                onClick={() => setActiveModal(ch)}
                 className="px-3 py-1.5 rounded-lg bg-[#10231C] text-white font-bold hover:bg-[#287A59] transition-colors"
               >
-                Reconnect Channel
+                {ch.connected ? 'Manage' : 'Connect'}
               </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Connection & Setup Modal */}
-      {activeModalChannel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white w-full max-w-lg rounded-2xl border border-[#E2E4DF] p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      {/* Modal */}
+      {activeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white w-full max-w-lg rounded-2xl border border-[#E2E4DF] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#E2E4DF] pb-3">
               <div className="flex items-center gap-2.5">
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shadow-xs"
-                  style={{ backgroundColor: activeModalChannel.iconBg }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: activeModal.iconBg || '#287A59' }}
                 >
-                  {getChannelIcon(activeModalChannel.type)}
+                  {getChannelIcon(activeModal.type, 'w-4 h-4')}
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#10231C]">{activeModalChannel.name} Connection</h3>
-                  <p className="text-[11px] text-[#68756F]">Verify webhook credentials and auto-reply permissions</p>
+                  <h3 className="text-sm font-bold text-[#10231C]">
+                    {activeModal.name}
+                  </h3>
+                  <p className="text-[11px] text-[#68756F]">
+                    {activeModal.connected
+                      ? 'Manage connection'
+                      : 'Connect this channel'}
+                  </p>
                 </div>
               </div>
               <button
-                onClick={() => setActiveModalChannel(null)}
+                onClick={() => setActiveModal(null)}
                 className="p-1 rounded-md text-[#68756F] hover:bg-[#F7F6F1]"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Channel-specific connect flow */}
-            {activeModalChannel.type === 'whatsapp' && (
-              <div className="space-y-4 text-xs">
-                <div className="p-4 rounded-xl bg-[#F7F6F1] border border-[#E2E4DF] flex items-center gap-4">
-                  <div className="p-3 bg-white rounded-lg border border-[#E2E4DF] shadow-2xs flex-shrink-0">
-                    <QrCode className="w-20 h-20 text-[#10231C]" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-[#10231C]">Scan to Pair WhatsApp Business</h4>
-                    <p className="text-[#68756F] mt-1">
-                      Open WhatsApp on your phone &gt; Settings &gt; Linked Devices &gt; Scan this QR code to enable real-time message sync.
-                    </p>
-                    <span className="inline-block mt-2 font-bold text-[#287A59]">
-                      ✓ Meta Cloud API Token Verified
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-[#14201B] mb-1">WhatsApp Business Phone Number</label>
-                  <input
-                    type="text"
-                    defaultValue="+255 754 892 100"
-                    className="w-full p-2.5 rounded-xl border border-[#E2E4DF] bg-white font-mono text-xs"
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeModalChannel.type === 'instagram' && (
-              <div className="space-y-3 text-xs">
+            <div className="text-xs space-y-3">
+              {activeModal.type === 'whatsapp' && (
                 <p className="text-[#68756F]">
-                  MtejaAI uses Meta Business Graph API to receive Direct Messages and Story Mentions.
+                  Connect WhatsApp Business via Meta Cloud API. You will need a
+                  Business phone number and API token from Meta.
                 </p>
-                <div className="p-3 rounded-xl bg-[#F7F6F1] border border-[#E2E4DF] space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-[#68756F]">Connected Profile:</span>
-                    <span className="font-bold text-[#10231C]">@zawadi_emporium_tz</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#68756F]">Followers:</span>
-                    <span className="font-medium">14,200</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#68756F]">Story Mention Webhook:</span>
-                    <span className="font-bold text-[#287A59]">Active (Instant trigger)</span>
-                  </div>
+              )}
+              {activeModal.type === 'telegram' && (
+                <div className="space-y-2 text-[#68756F]">
+                  <p>
+                    Telegram is configured securely on the backend. This browser
+                    never receives or stores your bot token.
+                  </p>
+                  <p>
+                    The Connect action registers the server webhook with Telegram.
+                  </p>
                 </div>
-              </div>
-            )}
-
-            {activeModalChannel.type === 'email' && (
-              <div className="space-y-3 text-xs">
+              )}
+              {activeModal.type === 'instagram' && (
                 <p className="text-[#68756F]">
-                  Synchronized with Google Workspace corporate MX records for support@zawadi.co.tz.
+                  Connect via Meta Business so Instagram DMs appear in your
+                  Unified Inbox.
                 </p>
-                <div>
-                  <label className="block font-semibold text-[#14201B] mb-1">Support Inbound Email</label>
-                  <input
-                    type="email"
-                    defaultValue="support@zawadi.co.tz"
-                    className="w-full p-2.5 rounded-xl border border-[#E2E4DF] bg-white text-xs"
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeModalChannel.type === 'call' && (
-              <div className="space-y-3 text-xs">
+              )}
+              {activeModal.type === 'email' && (
                 <p className="text-[#68756F]">
-                  Powered by Africa's Talking Telecom SIP gateway with Swahili voice model. Missed calls automatically trigger a WhatsApp brochure within 10 seconds.
+                  Connect your support email so customer emails sync into the
+                  inbox.
                 </p>
-                <div className="p-3 rounded-xl bg-[#F7F6F1] border border-[#E2E4DF] space-y-1">
-                  <span className="font-bold text-[#10231C]">SIP Hotline: +255 22 211 4900</span>
-                  <p className="text-[#68756F]">Auto-record and speech-to-text enabled.</p>
-                </div>
+              )}
+              {activeModal.type === 'call' && (
+                <p className="text-[#68756F]">
+                  Connect your business line so missed calls can trigger follow-up
+                  messages.
+                </p>
+              )}
+
+              <div className="p-3 rounded-xl bg-[#F7F6F1] border border-[#E2E4DF]">
+                <p className="text-[#68756F]">
+                  Set <span className="font-mono">TELEGRAM_BOT_TOKEN</span> and
+                  <span className="font-mono"> TELEGRAM_WEBHOOK_URL</span> in the
+                  backend environment before connecting.
+                </p>
               </div>
+            </div>
+
+            {activeModal.type === 'telegram' && telegramError && (
+              <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">
+                {telegramError}
+              </p>
             )}
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2E4DF] text-xs">
               <button
                 type="button"
-                onClick={() => setActiveModalChannel(null)}
+                onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl font-semibold text-[#68756F] hover:bg-[#F7F6F1]"
               >
                 Close
               </button>
               <button
                 type="button"
-                onClick={() => setActiveModalChannel(null)}
-                className="px-4 py-2 rounded-xl bg-[#287A59] text-white font-bold hover:bg-[#1f5f45]"
+                onClick={activeModal.type === 'telegram' ? handleTelegramAction : () => setActiveModal(null)}
+                disabled={telegramActionLoading}
+                className="px-4 py-2 rounded-xl bg-[#287A59] text-white font-bold hover:bg-[#1f5f45] disabled:opacity-60"
               >
-                Save Integration
+                {telegramActionLoading
+                  ? 'Connecting...'
+                  : activeModal.type === 'telegram'
+                    ? activeModal.connected ? 'Disconnect' : 'Connect Telegram'
+                    : activeModal.connected ? 'Save' : 'Continue setup'}
               </button>
             </div>
           </div>
@@ -288,5 +430,6 @@ export const ChannelsPage: React.FC<ChannelsPageProps> = ({
       )}
     </div>
   );
-};
+}
+
 export default ChannelsPage;

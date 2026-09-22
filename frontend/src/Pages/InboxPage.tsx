@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   MessageSquare,
   Camera,
@@ -31,7 +31,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { Conversation, ConversationFilter, ChannelType, PageId, ChatMessage } from '../../types';
-import { apiAssetUrl, apiAuthUpload } from '../api/Client';
+import { apiAssetUrl, apiAuthUpload, apiGet } from '../api/Client';
 
 interface InboxPageProps {
   conversations?: Conversation[];
@@ -65,6 +65,56 @@ export const InboxPage: React.FC<InboxPageProps> = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTelegramConversations = async () => {
+      try {
+        const data = await apiGet('/api/v1/conversations/conversations/?channel=telegram');
+        const rows = Array.isArray(data) ? data : data?.items || [];
+        const mapped = rows.map((conversation: any) => {
+          const messages = (conversation.messages || []).map((message: any) => ({
+            id: String(message.id),
+            sender: message.sender_type,
+            senderName: message.sender_name || (message.sender_type === 'customer' ? 'Telegram user' : 'MtejaAI'),
+            text: message.content,
+            timestamp: new Date(message.created_at).toLocaleString(),
+            isAiReplied: message.sender_type === 'ai',
+          }));
+          const lastMessage = messages[messages.length - 1];
+          return {
+            id: String(conversation.id),
+            customerName: lastMessage?.senderName || `Telegram chat ${conversation.customer_id}`,
+            businessName: 'Telegram',
+            phone: `Chat ${conversation.customer_id}`,
+            location: 'Telegram',
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(lastMessage?.senderName || 'Telegram')}`,
+            channel: 'telegram',
+            status: conversation.status,
+            priority: 'normal',
+            unread: false,
+            isAiHandled: conversation.current_handler === 'ai',
+            assignedAgent: '',
+            lastMessage: lastMessage?.text || 'No messages',
+            timestamp: lastMessage?.timestamp || new Date(conversation.updated_at).toLocaleString(),
+            messages,
+          };
+        });
+
+        if (!cancelled) setConversations(mapped);
+      } catch {
+        // Keep the current list visible when the API is temporarily unavailable.
+      }
+    };
+
+    loadTelegramConversations();
+    const interval = window.setInterval(loadTelegramConversations, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const activeConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
 

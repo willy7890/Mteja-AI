@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from app.models.user import User
 from app.models.customer import Customer
 from app.models.conversation import Conversation
@@ -16,7 +15,3 @@ __all__ = [
     "TrainingData",
     "EscalationLog",
 ]
-=======
-from app.models.training_data import TrainingData
-from app.models.telegram import TelegramLink, TelegramSession
->>>>>>> origin/develop

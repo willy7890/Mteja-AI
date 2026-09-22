@@ -66,6 +66,10 @@ class ClassificationService:
         """Njia mbadala (alias) ya kuita predict() kwa utangamano wa mfumo."""
         return self.predict(text)
 
+    def classify_message(self, text: str) -> Dict[str, Any]:
+        """Compatibility alias used by the inbound message services."""
+        return self.predict(text)
+
 
 # Instance zinazohitajika kwenye sehemu mbalimbali za mradi
 classifier_service = ClassificationService()

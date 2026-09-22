@@ -1,8 +1,3 @@
-# marketing_agent for MTEJA AI agentic system
-# Specialized agent logic, tool selection, and controlled execution
-# marketing_agent for MTEJA AI agentic system
-# Specialized agent logic, tool selection, and controlled execution
-
 from app.agents.base_agent import BaseAgent
 from app.tools.marketing_tools import MARKETING_TOOLS
 
