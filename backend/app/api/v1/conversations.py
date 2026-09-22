@@ -11,6 +11,8 @@ from app.core.security import get_current_user
 from app.models.conversation import Conversation, HandlerType
 from app.models.message import Message
 from app.models.user import User
+from app.api.dependencies import get_message_service
+from app.services.message import MessageService
 from app.schemas.conversation import (
     AssignRequest,
     ConversationResponse,
@@ -113,6 +115,7 @@ async def send_message(
     payload: MessageCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    message_service: MessageService = Depends(get_message_service),
 ):
     conv = await _get_owned_conversation(
         db,
@@ -120,9 +123,23 @@ async def send_message(
         current_user.organization_id,
     )
 
+    if payload.sender_type in {"agent", "human"} and conv.channel != "web":
+        return await message_service.send(
+            db=db,
+            organization_id=current_user.organization_id,
+            conversation_id=conv.id,
+            content=payload.content,
+            channel=conv.channel,
+            sender_type="agent",
+            sender_name=current_user.full_name,
+        )
+
     user_msg = Message(
         conversation_id=conv.id,
         sender_type=payload.sender_type,
+        sender_name=current_user.full_name,
+        direction="outbound" if payload.sender_type != "customer" else "inbound",
+        channel=conv.channel,
         content=payload.content,
     )
 

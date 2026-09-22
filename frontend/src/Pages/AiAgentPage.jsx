@@ -416,7 +416,7 @@ function AiAgentPage() {
 
       {/* TAB 5: Simulator */}
       {activeTab === 'preview' && (
-        <div className="bg-white rounded-2xl border border-[#E2E4DF] overflow-hidden flex flex-col md:flex-row h-[560px]">
+        <div className="bg-white rounded-2xl border border-[#E2E4DF] overflow-hidden flex flex-col md:flex-row h-[min(560px,calc(100dvh-10rem))] min-h-[420px]">
           <div className="w-full md:w-72 p-5 border-r border-[#E2E4DF] bg-[#F7F6F1] space-y-4">
             <div>
               <h3 className="text-xs font-bold uppercase text-[#10231C]">Simulator</h3>

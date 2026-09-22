@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import PublicLayout from './component/PublicLayout';
 import DashboardLayout from './component/DashboardLayout';
@@ -78,7 +78,12 @@ function generateDoodleTile(color, size = 500, count = 26) {
 }
 
 function App() {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => localStorage.getItem('mteja_theme') === 'dark');
+
+  useEffect(() => {
+    localStorage.setItem('mteja_theme', dark ? 'dark' : 'light');
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  }, [dark]);
 
   const lightPattern = useMemo(() => generateDoodleTile('rgba(20,32,26,0.14)'), []);
   const darkPattern = useMemo(() => generateDoodleTile('rgba(79,209,197,0.16)'), []);
@@ -130,7 +135,7 @@ function App() {
 
         {/* Authenticated app — its own chrome (Sidebar/TopHeader) via
             DashboardLayout, completely separate from the site above. */}
-        <Route path="/dashboard" element={<DashboardLayout t={t} />}>
+          <Route path="/dashboard" element={<DashboardLayout t={t} dark={dark} setDark={setDark} />}>
           <Route index element={<DashboardPage t={t} />} />
           <Route path="inbox" element={<InboxPage t={t} />} />
           <Route path="customers" element={<CustomersPage t={t} />} />
@@ -140,9 +145,9 @@ function App() {
           <Route path="channels" element={<ChannelsPage t={t} />} />
           <Route path="team" element={<TeamPage teamMembers={defaultTeamMembers} />} />
           <Route path="billing" element={<BillingPage billingInfo={defaultBillingInfo} />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<SettingsPage t={t} />} />
           <Route path="notifications" element={<NotificationsPage notifications={defaultNotifications} />} />
-          <Route path="profile" element={<ProfilePage user={defaultProfile} />} />
+          <Route path="profile" element={<ProfilePage user={defaultProfile} t={t} />} />
         </Route>
       </Routes>
     </BrowserRouter>

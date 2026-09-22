@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Bell, LogOut, User, CreditCard, Settings, Layers, ChevronDown } from "lucide-react";
+import ThemeToggle from './ThemeToggle';
 
 export const TopHeader = ({
   t,
+  dark,
+  setDark,
   user,
   currentPage,
   activePage,
@@ -19,6 +22,7 @@ export const TopHeader = ({
   const [pageSwitcherOpen, setPageSwitcherOpen] = useState(false);
   const dropdownRef = useRef(null);
   const switcherRef = useRef(null);
+  const profileAvatar = localStorage.getItem('mteja_profile_avatar');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -57,7 +61,7 @@ export const TopHeader = ({
   ];
 
   return (
-    <header className="h-16 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-20" style={{ background: t.card, borderBottom: `1px solid ${t.border}` }}>
+    <header className="min-h-16 flex items-center justify-between gap-2 px-3 sm:px-8 py-2 sticky top-0 z-20" style={{ background: t.card, borderBottom: `1px solid ${t.border}` }}>
       <div className="flex items-center gap-3">
         {onToggleMobileMenu && (
           <button onClick={onToggleMobileMenu} className="md:hidden p-1.5 rounded-lg" style={{ color: t.muted }} title="Toggle Menu">
@@ -67,7 +71,7 @@ export const TopHeader = ({
           </button>
         )}
 
-        <h1 className="text-lg font-semibold" style={{ color: t.text }}>{getPageTitle(current)}</h1>
+        <h1 className="text-sm sm:text-lg font-semibold truncate" style={{ color: t.text }}>{getPageTitle(current)}</h1>
 
         <div className="relative" ref={switcherRef}>
           <button
@@ -110,7 +114,8 @@ export const TopHeader = ({
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
-        <div onClick={onOpenCommandPalette} className="relative cursor-pointer" title="Search conversations... (Cmd+K)">
+        {setDark && <ThemeToggle dark={dark} setDark={setDark} />}
+        <div onClick={onOpenCommandPalette} className="relative cursor-pointer hidden sm:block" title="Search conversations... (Cmd+K)">
           <input
             type="text"
             readOnly
@@ -145,9 +150,11 @@ export const TopHeader = ({
           <button
             onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all"
-            style={{ background: t.text, color: t.bg }}
+            style={profileAvatar ? undefined : { background: t.text, color: t.bg }}
           >
-            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : '?'}
+            {profileAvatar ? (
+              <img src={profileAvatar} alt={user?.full_name || 'Profile'} className="w-full h-full rounded-full object-cover" />
+            ) : (user?.full_name ? user.full_name.charAt(0).toUpperCase() : '?')}
           </button>
 
           {profileDropdownOpen && (
