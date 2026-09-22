@@ -16,7 +16,7 @@ from app.schemas.analytics import (
 )
 from app.services.analytics import AnalyticsService
 
-router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
+router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 def get_analytics_service(db: AsyncSession = Depends(get_db)) -> AnalyticsService:

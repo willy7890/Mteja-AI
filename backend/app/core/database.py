@@ -10,6 +10,12 @@ engine = create_async_engine(
     echo=False,
     future=True,
     pool_pre_ping=True,
+    pool_recycle=1800,
+    pool_timeout=15,
+    connect_args={
+        "timeout": 15,
+        "command_timeout": 30,
+    },
 )
 
 # Async Session Factory

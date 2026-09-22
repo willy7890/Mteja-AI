@@ -35,7 +35,11 @@ class Orchestrator:
             Conversation.id == int(conversation_id),
             Conversation.organization_id == organization_id,
         ))).scalar_one_or_none()
-        if conversation is None or conversation.mode != "ai" or conversation.status != "open":
+        if (
+            conversation is None
+            or conversation.current_handler != "ai"
+            or conversation.status != "open"
+        ):
             return {"blocked": True, "reason": "Conversation is owned by a human agent"}
 
         chosen_agent_name = self.supervisor.route(message)

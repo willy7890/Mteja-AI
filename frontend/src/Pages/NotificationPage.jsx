@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Bell,
   CheckCircle2,
@@ -10,21 +10,14 @@ import {
   Filter,
   CheckCheck
 } from 'lucide-react';
-import { NotificationItem, PageId } from '../../types';
 
-interface NotificationsPageProps {
-  notifications: NotificationItem[];
-  onNavigate: (page: PageId) => void;
-  onSelectConversation?: (id: string) => void;
-}
-
-export const NotificationsPage: React.FC<NotificationsPageProps> = ({
-  notifications: initialNotifications,
-  onNavigate,
+export const NotificationsPage = ({
+  notifications: initialNotifications = [],
+  onNavigate = () => {},
   onSelectConversation,
 }) => {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
-  const [filter, setFilter] = useState<'all' | 'ai' | 'escalation' | 'customer' | 'system'>('all');
+  const [notifications, setNotifications] = useState(initialNotifications);
+  const [filter, setFilter] = useState('all');
 
   const handleMarkAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
@@ -35,7 +28,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
     return n.type === filter;
   });
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type) => {
     switch (type) {
       case 'escalation':
         return (
@@ -95,7 +88,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setFilter(tab.id as any)}
+            onClick={() => setFilter(tab.id)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               filter === tab.id
                 ? 'bg-[#10231C] text-white'

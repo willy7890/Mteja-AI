@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   User,
   Mail,
@@ -12,21 +12,15 @@ import {
   Smartphone,
   Globe
 } from 'lucide-react';
-import { UserProfile, PageId } from '../../types';
 
-interface ProfilePageProps {
-  user: UserProfile;
-  onNavigate: (page: PageId) => void;
-}
-
-export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onNavigate }) => {
+export const ProfilePage = ({ user }) => {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone);
   const [company, setCompany] = useState(user.company);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = (e) => {
     e.preventDefault();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

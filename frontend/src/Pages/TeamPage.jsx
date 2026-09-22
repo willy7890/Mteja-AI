@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   UserCheck,
   Plus,
@@ -12,28 +12,19 @@ import {
   Trash2,
   Edit2
 } from 'lucide-react';
-import { TeamMember, PageId } from '../../types';
 
-interface TeamPageProps {
-  teamMembers: TeamMember[];
-  onNavigate: (page: PageId) => void;
-}
-
-export const TeamPage: React.FC<TeamPageProps> = ({
-  teamMembers: initialMembers,
-  onNavigate,
-}) => {
-  const [members, setMembers] = useState<TeamMember[]>(initialMembers);
+export const TeamPage = ({ teamMembers = [] }) => {
+  const [members, setMembers] = useState(teamMembers);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteName, setInviteName] = useState('');
-  const [inviteRole, setInviteRole] = useState<'Owner' | 'Admin' | 'Agent' | 'Viewer'>('Agent');
+  const [inviteRole, setInviteRole] = useState('Agent');
 
-  const handleInvite = (e: React.FormEvent) => {
+  const handleInvite = (e) => {
     e.preventDefault();
     if (!inviteEmail.trim() || !inviteName.trim()) return;
 
-    const newMember: TeamMember = {
+    const newMember = {
       id: `tm-${Date.now()}`,
       name: inviteName.trim(),
       email: inviteEmail.trim(),
@@ -50,7 +41,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     setInviteEmail('');
   };
 
-  const getRoleBadge = (role: string) => {
+  const getRoleBadge = (role) => {
     switch (role) {
       case 'Owner':
         return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#10231C] text-white">Owner</span>;
@@ -63,7 +54,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     }
   };
 
-  const getStatusIndicator = (status: string) => {
+  const getStatusIndicator = (status) => {
     switch (status) {
       case 'Active':
         return (
@@ -224,7 +215,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 <label className="block font-semibold text-[#14201B] mb-1">System Role & Permissions</label>
                 <select
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as any)}
+                  onChange={(e) => setInviteRole(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-[#E2E4DF] bg-[#F7F6F1] focus:bg-white focus:outline-none focus:border-[#287A59]"
                 >
                   <option value="Agent">Agent (Can chat, approve AI replies, edit CRM)</option>

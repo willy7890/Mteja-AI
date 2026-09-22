@@ -1,5 +1,6 @@
-import os
 from google_auth_oauthlib.flow import Flow
+
+from app.core.config import settings
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
@@ -10,8 +11,8 @@ SCOPES = [
 def create_google_flow():
     client_config = {
         "web": {
-            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-            "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
         }
@@ -20,5 +21,5 @@ def create_google_flow():
         client_config,
         scopes=SCOPES,
     )
-    flow.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    flow.redirect_uri = settings.GOOGLE_REDIRECT_URI
     return flow

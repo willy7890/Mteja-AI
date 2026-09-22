@@ -10,6 +10,8 @@ from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy.future import select
 
 from app.core.database import AsyncSessionLocal
+from app.core.config import settings
+from app.routes.telegram import manager as telegram_socket_manager
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
 
@@ -17,7 +19,7 @@ from app.models.user import User
 router = APIRouter(prefix="/telegram", tags=["Telegram Webhook"])
 
 # Retrieve token safely from environment variables
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN.strip()
 
 # Initialize Bot safely without crashing Uvicorn startup
 bot = None
@@ -164,6 +166,18 @@ async def telegram_webhook(request: Request):
         data = await request.json()
         update = types.Update(**data)
         await dp.feed_update(bot=bot, update=update)
+        message = data.get("message") or {}
+        if message:
+            await telegram_socket_manager.broadcast(
+                {
+                    "id": message.get("message_id"),
+                    "sender": message.get("from", {}).get("first_name", "Telegram User"),
+                    "chat_id": message.get("chat", {}).get("id"),
+                    "text": message.get("text", ""),
+                    "channel": "telegram",
+                    "timestamp": "Just now",
+                }
+            )
         return {"status": "ok"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
