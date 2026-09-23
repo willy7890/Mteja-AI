@@ -23,13 +23,14 @@ export const SettingsPage = () => {
   // Settings State
   const [businessName, setBusinessName] = useState('Zawadi Emporium Tanzania');
   const [timezone, setTimezone] = useState('Africa/Dar_es_Salaam (EAT +03:00)');
-  const [primaryLanguage, setPrimaryLanguage] = useState('Swahili & English (Adaptive)');
+  const [primaryLanguage, setPrimaryLanguage] = useState(() => localStorage.getItem('mteja_language') || 'sw-en');
   const [notificationEmail, setNotificationEmail] = useState('alerts@zawadi.co.tz');
   const [hotline, setHotline] = useState('+255 754 892 100');
   const [autoEscalateHighValue, setAutoEscalateHighValue] = useState(true);
   const [twoFactorAuth, setTwoFactorAuth] = useState(true);
 
   const handleSave = () => {
+    localStorage.setItem('mteja_language', primaryLanguage);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -117,12 +118,15 @@ export const SettingsPage = () => {
 
             <div>
               <label className="block font-semibold text-[#14201B] mb-1">Language Processing Mode</label>
-              <input
-                type="text"
+              <select
                 value={primaryLanguage}
                 onChange={(e) => setPrimaryLanguage(e.target.value)}
                 className="w-full p-2.5 rounded-xl border border-[#E2E4DF] bg-[#F7F6F1] text-[#14201B]"
-              />
+              >
+                <option value="sw-en">Swahili and English</option>
+                <option value="sw">Swahili</option>
+                <option value="en">English</option>
+              </select>
               <p className="text-[11px] text-[#68756F] mt-1">
                 Auto-switches between conversational Swahili and English.
               </p>

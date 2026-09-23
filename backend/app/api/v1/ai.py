@@ -30,7 +30,7 @@ async def generate_reply(
         ))).scalar_one_or_none()
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
-        if conversation.mode != "ai" or conversation.status != "open":
+        if conversation.current_handler != "ai" or conversation.status != "open":
             raise HTTPException(status_code=409, detail="Conversation is owned by a human agent")
     result = await AIResponseEngine.generate_reply(
         user_message=payload.message,

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { apiGet } from '../api/Client';
 import {
   User,
   Mail,
@@ -13,15 +14,38 @@ import {
   Globe
 } from 'lucide-react';
 
-export const ProfilePage = ({ user }) => {
-  const [name, setName] = useState(user.name);
-  const [email, setEmail] = useState(user.email);
-  const [phone, setPhone] = useState(user.phone);
-  const [company, setCompany] = useState(user.company);
+export const ProfilePage = ({ user: initialUser }) => {
+  const [user, setUser] = useState(initialUser);
+  const [name, setName] = useState(initialUser.name);
+  const [email, setEmail] = useState(initialUser.email);
+  const [phone, setPhone] = useState(initialUser.phone);
+  const [company, setCompany] = useState(initialUser.company);
+  const [origin, setOrigin] = useState(() => localStorage.getItem('mteja_profile_origin') || 'Dar es Salaam, Tanzania');
+  const [avatar, setAvatar] = useState(() => localStorage.getItem('mteja_profile_avatar') || initialUser.avatar);
+  const [language, setLanguage] = useState(() => localStorage.getItem('mteja_language') || 'sw-en');
+  const avatarInput = useRef(null);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    apiGet('/api/v1/auth/me').then((data) => {
+      setUser(data);
+      setName(data.full_name || initialUser.name);
+      setEmail(data.email || initialUser.email);
+    }).catch(() => {});
+  }, [initialUser.email, initialUser.name]);
+
+  const handleAvatar = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const nextAvatar = URL.createObjectURL(file);
+    setAvatar(nextAvatar);
+    localStorage.setItem('mteja_profile_avatar', nextAvatar);
+  };
 
   const handleSave = (e) => {
     e.preventDefault();
+    localStorage.setItem('mteja_profile_origin', origin);
+    localStorage.setItem('mteja_language', language);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -40,17 +64,19 @@ export const ProfilePage = ({ user }) => {
         <div className="p-6 rounded-2xl bg-white border border-[#E2E4DF] shadow-2xs flex flex-col sm:flex-row items-center gap-6">
           <div className="relative">
             <img
-              src={user.avatar}
+              src={avatar}
               alt={name}
               className="w-20 h-20 rounded-full object-cover border-2 border-[#287A59]"
             />
             <button
               type="button"
+              onClick={() => avatarInput.current?.click()}
               className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#10231C] text-white hover:bg-[#287A59] transition-colors shadow-xs"
               title="Upload new photo"
             >
               <Camera className="w-3.5 h-3.5" />
             </button>
+            <input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
           </div>
 
           <div className="text-center sm:text-left space-y-1">
@@ -60,7 +86,7 @@ export const ProfilePage = ({ user }) => {
                 {user.role}
               </span>
             </div>
-            <p className="text-xs text-[#68756F]">{company} • Dar es Salaam, Tanzania</p>
+            <p className="text-xs text-[#68756F]">{company} • {origin}</p>
             <p className="text-[11px] text-[#68756F]">Primary contact for Vodacom & Meta Business Cloud API webhooks.</p>
           </div>
         </div>
@@ -108,6 +134,25 @@ export const ProfilePage = ({ user }) => {
                 onChange={(e) => setCompany(e.target.value)}
                 className="w-full p-2.5 rounded-xl border border-[#E2E4DF] bg-[#F7F6F1] focus:bg-white focus:outline-none focus:border-[#287A59]"
               />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-[#14201B] mb-1">Origin / Location</label>
+              <input
+                type="text"
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value)}
+                className="w-full p-2.5 rounded-xl border border-[#E2E4DF] bg-[#F7F6F1] focus:bg-white focus:outline-none focus:border-[#287A59]"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-[#14201B] mb-1">Preferred Language</label>
+              <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#E2E4DF] bg-[#F7F6F1]">
+                <option value="sw-en">Swahili and English</option>
+                <option value="sw">Swahili</option>
+                <option value="en">English</option>
+              </select>
             </div>
           </div>
         </div>

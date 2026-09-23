@@ -1,8 +1,17 @@
 import {
   LayoutDashboard, Inbox, Users, Bot, Zap, BarChart3,
-  MessageSquare, Camera, Mail, PhoneCall, UserCheck,
-  Settings, CreditCard, ChevronRight, Send, Video,
+  UserCheck, Settings, CreditCard, ChevronRight,
 } from "lucide-react";
+import {
+  FaWhatsapp,
+  FaTelegram,
+  FaTiktok,
+  FaInstagram,
+  FaFacebookF,
+  FaEnvelope,
+  FaCommentSms,
+  FaPhone,
+} from 'react-icons/fa6';
 
 export const Sidebar = ({
   t,
@@ -17,6 +26,7 @@ export const Sidebar = ({
   onSelectChannelFilter,
 }) => {
   const current = currentPage || activePage || "dashboard";
+  const profileAvatar = localStorage.getItem('mteja_profile_avatar');
 
   const mainNavItems = [
     { id: "dashboard", label: "Overview", icon: LayoutDashboard },
@@ -27,12 +37,14 @@ export const Sidebar = ({
     { id: "analytics", label: "Analytics", icon: BarChart3 },
   ];
   const channelItems = [
-    { channel: "whatsapp", label: "WhatsApp", icon: MessageSquare, count: "Active", color: "#25D366" },
-    { channel: "telegram", label: "Telegram", icon: Send, count: "Active", color: "#0088cc" }, 
-    { channel: "tiktok", label: "TikTok", icon: Video, count: "New", color: "#00f2fe" }, 
-    { channel: "instagram", label: "Instagram", icon: Camera, count: "1 new", color: "#E4405F" },
-    { channel: "email", label: "Email", icon: Mail, count: "Synced", color: "#4285F4" },
-    { channel: "call", label: "Calls & Voice", icon: PhoneCall, count: "1 voice", color: "#287A59" },
+    { channel: "whatsapp", label: "WhatsApp", icon: FaWhatsapp, count: "Active" },
+    { channel: "telegram", label: "Telegram", icon: FaTelegram, count: "Active" },
+    { channel: "tiktok", label: "TikTok", icon: FaTiktok, count: "New" },
+    { channel: "instagram", label: "Instagram", icon: FaInstagram, count: "1 new" },
+    { channel: "facebook", label: "Facebook", icon: FaFacebookF, count: "New" },
+    { channel: "email", label: "Email", icon: FaEnvelope, count: "Synced" },
+    { channel: "sms", label: "Normal SMS", icon: FaCommentSms, count: "New" },
+    { channel: "call", label: "Calls & Voice", icon: FaPhone, count: "1 voice" },
   ];
 
   const handleChannelClick = (channel) => {
@@ -136,7 +148,7 @@ export const Sidebar = ({
                     }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />
+                      <Icon size={16} aria-hidden="true" />
                       <span>{item.label}</span>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: t.surface, color: t.text }}>
@@ -184,7 +196,9 @@ export const Sidebar = ({
             <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: t.text, color: t.bg }}>
               {/* First letter of the real name, falling back to "?" only
                   if user data somehow isn't loaded yet. */}
-              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : '?'}
+              {profileAvatar ? (
+                <img src={profileAvatar} alt={user?.full_name || 'Profile'} className="w-full h-full rounded-full object-cover" />
+              ) : (user?.full_name ? user.full_name.charAt(0).toUpperCase() : '?')}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold truncate" style={{ color: t.text }}>

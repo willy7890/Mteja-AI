@@ -299,7 +299,7 @@ export const BillingPage = ({ billingInfo = {} }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2E4DF]">
-              {billingInfo.invoices.map((inv) => (
+              {(billingInfo.invoices || []).map((inv) => (
                 <tr key={inv.id} className="hover:bg-[#F7F6F1]">
                   <td className="py-3.5 px-4 font-mono font-bold text-[#10231C]">{inv.id}</td>
                   <td className="py-3.5 px-3 text-[#68756F]">{inv.date}</td>

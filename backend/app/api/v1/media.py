@@ -75,7 +75,7 @@ async def upload_voice_note(
     )
     try:
         transcript = await transcribe_audio(media.file_path, media.filename)
-        reply_text = await generate_agent_reply(transcript) if conversation.mode == "ai" else None
+        reply_text = await generate_agent_reply(transcript) if conversation.current_handler == "ai" else None
     except VoiceProcessingError as exc:
         await db.rollback()
         try:

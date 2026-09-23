@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  MessageSquare,
-  Camera,
-  Mail,
-  PhoneCall,
   RefreshCw,
   Settings,
   ExternalLink,
   ShieldCheck,
   X,
-  Send,
   Loader2,
 } from 'lucide-react';
+import {
+  FaWhatsapp,
+  FaTelegram,
+  FaTiktok,
+  FaInstagram,
+  FaFacebookF,
+  FaEnvelope,
+  FaCommentSms,
+  FaPhone,
+} from 'react-icons/fa6';
 import { apiAuthPost, apiGet } from '../api/Client';
 
 const DEFAULT_CHANNELS = [
@@ -25,6 +30,7 @@ const DEFAULT_CHANNELS = [
     accountInfo: 'Not connected',
     lastSync: '—',
     statusText: 'Connect to start receiving messages',
+    icon: FaWhatsapp,
   },
   {
     id: 'telegram',
@@ -35,6 +41,7 @@ const DEFAULT_CHANNELS = [
     accountInfo: 'Not connected',
     lastSync: '—',
     statusText: 'Connect bot to receive messages',
+    icon: FaTelegram,
   },
   {
     id: 'instagram',
@@ -45,6 +52,7 @@ const DEFAULT_CHANNELS = [
     accountInfo: 'Not connected',
     lastSync: '—',
     statusText: 'Connect Meta Business account',
+    icon: FaInstagram,
   },
   {
     id: 'email',
@@ -55,6 +63,40 @@ const DEFAULT_CHANNELS = [
     accountInfo: 'Not connected',
     lastSync: '—',
     statusText: 'Connect inbox to sync emails',
+    icon: FaEnvelope,
+  },
+  {
+    id: 'sms',
+    type: 'sms',
+    name: 'Normal SMS',
+    iconBg: '#287A59',
+    connected: false,
+    accountInfo: 'Not connected',
+    lastSync: '—',
+    statusText: 'Connect an SMS provider to receive texts',
+    icon: FaCommentSms,
+  },
+  {
+    id: 'tiktok',
+    type: 'tiktok',
+    name: 'TikTok Direct Messages',
+    iconBg: '#111111',
+    connected: false,
+    accountInfo: 'Not connected',
+    lastSync: '—',
+    statusText: 'Connect TikTok Business to receive DMs',
+    icon: FaTiktok,
+  },
+  {
+    id: 'facebook',
+    type: 'facebook',
+    name: 'Facebook Messenger',
+    iconBg: '#1877F2',
+    connected: false,
+    accountInfo: 'Not connected',
+    lastSync: '—',
+    statusText: 'Connect Facebook Page Messenger',
+    icon: FaFacebookF,
   },
   {
     id: 'call',
@@ -65,6 +107,7 @@ const DEFAULT_CHANNELS = [
     accountInfo: 'Not connected',
     lastSync: '—',
     statusText: 'Connect for missed-call handling',
+    icon: FaPhone,
   },
 ];
 
@@ -149,16 +192,14 @@ function ChannelsPage() {
   const getChannelIcon = (type, size = 'w-6 h-6') => {
     const cls = `${size} text-white`;
     switch (type) {
-      case 'whatsapp':
-        return <MessageSquare className={cls} />;
-      case 'telegram':
-        return <Send className={cls} />;
-      case 'instagram':
-        return <Camera className={cls} />;
-      case 'email':
-        return <Mail className={cls} />;
-      case 'call':
-        return <PhoneCall className={cls} />;
+      case 'whatsapp': return <FaWhatsapp className={cls} />;
+      case 'telegram': return <FaTelegram className={cls} />;
+      case 'tiktok': return <FaTiktok className={cls} />;
+      case 'instagram': return <FaInstagram className={cls} />;
+      case 'facebook': return <FaFacebookF className={cls} />;
+      case 'email': return <FaEnvelope className={cls} />;
+      case 'sms': return <FaCommentSms className={cls} />;
+      case 'call': return <FaPhone className={cls} />;
       default:
         return <MessageSquare className={cls} />;
     }
@@ -186,16 +227,12 @@ function ChannelsPage() {
             Channels & Integrations
           </h2>
           <p className="text-xs text-[#68756F] mt-1">
-            Connect WhatsApp, Telegram, Instagram, Email and Calls into one inbox.
+            Connect seven channels into one unified inbox.
           </p>
         </div>
 
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F7F6F1] text-xs font-bold text-[#10231C]">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              connectedCount > 0 ? 'bg-[#287A59] animate-pulse' : 'bg-[#68756F]'
-            }`}
-          />
+          <ShieldCheck className="w-3.5 h-3.5" />
           <span>
             {connectedCount} / {channels.length} Connected
           </span>
@@ -245,11 +282,11 @@ function ChannelsPage() {
                   <div>
                     <h3 className="text-sm font-bold text-[#10231C]">{ch.name}</h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          ch.connected ? 'bg-[#35D98A]' : 'bg-[#68756F]'
-                        }`}
-                      />
+                      {ch.connected ? (
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#287A59]" />
+                      ) : (
+                        <Settings className="w-3.5 h-3.5 text-[#68756F]" />
+                      )}
                       <span
                         className={`text-xs font-semibold ${
                           ch.connected ? 'text-[#287A59]' : 'text-[#68756F]'
@@ -380,6 +417,11 @@ function ChannelsPage() {
                 <p className="text-[#68756F]">
                   Connect your support email so customer emails sync into the
                   inbox.
+                </p>
+              )}
+              {activeModal.type === 'sms' && (
+                <p className="text-[#68756F]">
+                  Connect an SMS provider to receive and respond to standard text messages.
                 </p>
               )}
               {activeModal.type === 'call' && (

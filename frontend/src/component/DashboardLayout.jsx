@@ -8,7 +8,7 @@ import { useTelegramMessages } from '../hooks/useTelegramMessages';
 
 const TOP_LEVEL_PAGES = ['login'];
 
-function DashboardLayout({ t }) {
+function DashboardLayout({ t, dark, setDark }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -65,7 +65,7 @@ function DashboardLayout({ t }) {
   }
 
   return (
-    <div className="flex min-h-screen" style={{ background: t.bg }}>
+    <div className="flex min-h-screen min-w-0" style={{ background: t.bg }}>
       <Sidebar
         t={t}
         user={user}
@@ -82,6 +82,8 @@ function DashboardLayout({ t }) {
       <div className="flex-1 flex flex-col min-w-0">
         <TopHeader
           t={t}
+          dark={dark}
+          setDark={setDark}
           user={user}
           currentPage={currentPage}
           onNavigate={handleNavigate}
@@ -94,7 +96,7 @@ function DashboardLayout({ t }) {
           unreadCount={messages.length}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto">
           {/* 5. Tunapitisha jumbe zote na status ya connection kwenda kwenye kurasa za ndani (Inbox/Dashboard) */}
           <Outlet context={{ messages, isConnected }} />
         </main>
