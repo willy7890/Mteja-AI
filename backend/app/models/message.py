@@ -79,6 +79,13 @@ class Message(Base):
         default="telegram",
     )
 
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="sent",
+        server_default="sent",
+    )
+
     content: Mapped[str] = mapped_column(
         Text,
         nullable=False,
