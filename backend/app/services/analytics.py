@@ -18,7 +18,7 @@ CACHE_TTL_SECONDS = 60
 STATUS_OPEN = "open"
 STATUS_RESOLVED = "resolved"
 STATUS_ESCALATED = "escalated"
-MODE_AI = "ai"
+HANDLER_AI = "ai"
 
 
 class AnalyticsError(Exception):
@@ -94,7 +94,7 @@ class AnalyticsService:
                     case(
                         (
                             (Conversation.status == STATUS_RESOLVED)
-                            & (Conversation.mode == MODE_AI),
+                            & (Conversation.current_handler == HANDLER_AI),
                             1,
                         ),
                         else_=0,
@@ -197,7 +197,7 @@ class AnalyticsService:
                 func.count(),
                 func.sum(
                     case(
-                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.mode == MODE_AI), 1),
+                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.current_handler == HANDLER_AI), 1),
                         else_=0,
                     )
                 ),
@@ -239,7 +239,7 @@ class AnalyticsService:
                 func.count(),
                 func.sum(
                     case(
-                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.mode == MODE_AI), 1),
+                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.current_handler == HANDLER_AI), 1),
                         else_=0,
                     )
                 ),
@@ -301,7 +301,7 @@ class AnalyticsService:
                 func.count(),
                 func.sum(
                     case(
-                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.mode == MODE_AI), 1),
+                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.current_handler == HANDLER_AI), 1),
                         else_=0,
                     )
                 ),
@@ -319,7 +319,7 @@ class AnalyticsService:
                 func.count(),
                 func.sum(
                     case(
-                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.mode == MODE_AI), 1),
+                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.current_handler == HANDLER_AI), 1),
                         else_=0,
                     )
                 ),
@@ -384,7 +384,7 @@ class AnalyticsService:
                 func.count(Message.id),
                 func.sum(
                     case(
-                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.mode == MODE_AI), 1),
+                        ((Conversation.status == STATUS_RESOLVED) & (Conversation.current_handler == HANDLER_AI), 1),
                         else_=0,
                     )
                 ),

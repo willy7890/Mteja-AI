@@ -7,7 +7,7 @@ function PublicLayout({ t, dark, setDark }) {
     <div
       className="min-h-screen transition-colors duration-300"
       style={{
-        background: dark ? t.bgGradient : t.bg,
+        backgroundColor: t.bg,
         backgroundImage: dark ? `${t.bgPattern}, ${t.bgGradient}` : `${t.bgPattern}`,
         backgroundSize: '500px 500px, cover',
         backgroundRepeat: 'repeat, no-repeat',

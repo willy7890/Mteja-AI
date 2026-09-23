@@ -31,7 +31,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { Conversation, ConversationFilter, ChannelType, PageId, ChatMessage } from '../../types';
-import { apiAssetUrl, apiAuthUpload, apiGet } from '../api/Client';
+import { apiAssetUrl, apiAuthPost, apiAuthUpload, apiGet } from '../api/Client';
 
 interface InboxPageProps {
   conversations?: Conversation[];
@@ -61,10 +61,17 @@ export const InboxPage: React.FC<InboxPageProps> = ({
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [isSendingVoice, setIsSendingVoice] = useState(false);
   const [voiceError, setVoiceError] = useState('');
+  const [currentAgentName, setCurrentAgentName] = useState('Human Agent');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    apiGet('/api/v1/auth/me').then((data) => {
+      if (data?.full_name) setCurrentAgentName(data.full_name);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +106,8 @@ export const InboxPage: React.FC<InboxPageProps> = ({
             lastMessage: lastMessage?.text || 'No messages',
             timestamp: lastMessage?.timestamp || new Date(conversation.updated_at).toLocaleString(),
             messages,
+            customerTags: [],
+            aiSuggestedReplies: [],
           };
         });
 
@@ -248,7 +257,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
     if (filter === 'unread' && !c.unread) return false;
     if (filter === 'ai-handled' && !c.isAiHandled) return false;
     if (filter === 'needs-attention' && c.status !== 'escalated' && c.status !== 'needs-attention') return false;
-    if (filter === 'assigned' && c.assignedAgent !== 'Khamis Mgofi') return false;
+    if (filter === 'assigned' && c.assignedAgent !== currentAgentName) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -295,14 +304,22 @@ export const InboxPage: React.FC<InboxPageProps> = ({
     }
   };
 
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || messageInput;
     if (!text.trim() || !activeConv) return;
+
+    let sentMessage: any = null;
+    if (isAiTakeover) {
+      sentMessage = await apiAuthPost(
+        `/api/v1/conversations/conversations/${activeConv.id}/messages`,
+        { sender_type: 'agent', content: text.trim() },
+      );
+    }
 
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       sender: isAiTakeover ? 'agent' : 'ai',
-      senderName: isAiTakeover ? 'Khamis Mgofi (Human)' : 'MtejaAI Assistant',
+      senderName: sentMessage?.sender_name || (isAiTakeover ? currentAgentName : 'MtejaAI Assistant'),
       text: text.trim(),
       timestamp: 'Just now',
       isAiReplied: !isAiTakeover,
@@ -338,9 +355,9 @@ export const InboxPage: React.FC<InboxPageProps> = ({
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col md:flex-row overflow-hidden bg-[#FFFFFF]">
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col md:flex-row overflow-hidden bg-[#FFFFFF]">
       {/* COLUMN 1: Conversation List (Left) */}
-      <div className="w-full md:w-80 lg:w-96 border-r border-[#E2E4DF] flex flex-col h-full flex-shrink-0 bg-[#FFFFFF]">
+      <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-[#E2E4DF] flex flex-col h-[min(42vh,22rem)] md:h-auto flex-shrink-0 bg-[#FFFFFF]">
         {/* Search & Header */}
         <div className="p-3.5 border-b border-[#E2E4DF] space-y-2.5">
           <div className="flex items-center justify-between">
@@ -470,7 +487,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
       </div>
 
       {/* COLUMN 2: Active Conversation & Detail (Center) */}
-      <div className="flex-1 flex flex-col h-full bg-[#F7F6F1] min-w-0">
+      <div className="flex-1 flex flex-col min-h-[32rem] md:min-h-0 bg-[#F7F6F1] min-w-0">
         {activeConv ? (
           <>
             {/* Conversation Header */}
@@ -677,7 +694,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder={
                       isAiTakeover
-                        ? 'Type human response as Khamis Mgofi (override mode)...'
+                        ? `Type human response as ${currentAgentName} (override mode)...`
                         : 'Type message or customize AI response...'
                     }
                     className="w-full p-3 text-xs rounded-xl border border-[#E2E4DF] bg-[#F7F6F1] focus:bg-white focus:outline-none focus:border-[#287A59] transition-colors resize-none placeholder-[#68756F]"
@@ -773,7 +790,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
 
       {/* COLUMN 3: Customer Information (Right) */}
       {showRightPanel && activeConv && (
-        <div className="w-full md:w-80 lg:w-88 border-l border-[#E2E4DF] bg-white flex flex-col h-full flex-shrink-0 overflow-y-auto">
+        <div className="hidden md:flex w-full md:w-80 lg:w-88 border-l border-[#E2E4DF] bg-white flex-col h-full flex-shrink-0 overflow-y-auto">
           {/* Header */}
           <div className="p-4 border-b border-[#E2E4DF] flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#10231C]">
@@ -802,7 +819,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
                 )}
               </div>
               <div className="flex justify-center gap-1.5">
-                {activeConv.customerTags.map((tag, i) => (
+                {(activeConv.customerTags || []).map((tag, i) => (
                   <span
                     key={i}
                     className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F7F6F1] border border-[#E2E4DF] text-[#14201B]"
@@ -821,7 +838,9 @@ export const InboxPage: React.FC<InboxPageProps> = ({
               </div>
               <div>
                 <span className="text-[11px] text-[#68756F]">Assigned Agent</span>
-                <p className="text-xs font-bold text-[#287A59] mt-0.5">{activeConv.assignedAgent}</p>
+                <p className="text-xs font-bold text-[#287A59] mt-0.5">
+                  {activeConv.assignedAgent || (isAiTakeover ? currentAgentName : 'Unassigned')}
+                </p>
               </div>
             </div>
 

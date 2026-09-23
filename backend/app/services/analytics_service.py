@@ -40,7 +40,7 @@ class AnalyticService:
     ai_res = await db.execute(
         select(func.count(Conversation.id)).where(
             Conversation.organization_id == organization_id,
-            Conversation.mode == "ai",
+            Conversation.current_handler == "ai",
         )
     )
     ai_mode_conversations = ai_res.scalar() or 0

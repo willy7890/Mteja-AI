@@ -15,6 +15,7 @@ from app.models.channel import ChannelIntegration
 from app.models.customer import Customer
 from app.models.conversation import Conversation
 from app.services.agent_service import handle_inbound_message
+from app.services.knowledge_service import kb_service
 from app.services.message import MessageService
 from app.services.telegram_service import format_telegram_reply
 
@@ -189,7 +190,7 @@ async def _handle_meta_webhook(
 
     if (
         not conversation
-        or conversation.mode != "ai"
+        or conversation.current_handler != "ai"
         or conversation.status != "open"
         or result.get("blocked")
     ):
@@ -459,6 +460,8 @@ async def _process_telegram_webhook(
 
     normalized = adapter.normalize_incoming(payload)
 
+    command = str(normalized.get("content") or "").strip().split()[0].lower()
+
     if (
         not normalized.get("from")
         or not normalized.get("content")
@@ -497,11 +500,27 @@ async def _process_telegram_webhook(
         customer_id=customer.id,
     )
 
-    result = await handle_inbound_message(
-        db=db,
-        organization_id=organization_id,
-        contact_id=str(message.conversation_id),
-        message_text=normalized["content"],
+    trained_start_reply = None
+    if command == "/start":
+        for start_query in ("/start", "start", "karibu"):
+            trained_start_reply = kb_service.best_answer(start_query)
+            if trained_start_reply:
+                break
+
+    result = (
+        {
+            "status": "AI_REPLIED",
+            "reply": trained_start_reply or (
+                "Karibu Mteja AI! 👋 Tuma swali lako na tutakujibu haraka."
+            ),
+        }
+        if command == "/start"
+        else await handle_inbound_message(
+            db=db,
+            organization_id=organization_id,
+            contact_id=str(message.conversation_id),
+            message_text=normalized["content"],
+        )
     )
 
     conversation_result = await db.execute(
@@ -524,7 +543,11 @@ async def _process_telegram_webhook(
             "message": "Conversation is owned by a human agent",
         }
 
-    reply_text = result.get("reply") or "Thanks for your message."
+    reply_text = result.get("reply") or (
+        "Karibu Mteja AI! 👋 Tuma swali lako na tutakujibu haraka."
+        if command == "/start"
+        else "Thanks for your message."
+    )
 
     reply = await message_service.send(
         db=db,
@@ -659,7 +682,7 @@ async def email_webhook(
 
     if (
         not conversation
-        or conversation.mode != "ai"
+        or conversation.current_handler != "ai"
         or conversation.status != "open"
         or result.get("blocked")
     ):
@@ -772,7 +795,7 @@ async def sms_webhook(
 
     if (
         not conversation
-        or conversation.mode != "ai"
+        or conversation.current_handler != "ai"
         or conversation.status != "open"
         or result.get("blocked")
     ):

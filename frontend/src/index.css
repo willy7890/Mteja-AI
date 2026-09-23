@@ -7,6 +7,89 @@
 
 body {
   font-family: "Manrope", sans-serif;
+  margin: 0;
+  background: #F3F1EA;
+  color: #14201A;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .p-6 {
+    padding: 1rem !important;
+  }
+
+  .p-8 {
+    padding: 1rem !important;
+  }
+
+  .px-6 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .px-8 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+html[data-theme='dark'] body {
+  background: #0B1220;
+  color: #F2F0E8;
+}
+
+html[data-theme='dark'] .bg-white,
+html[data-theme='dark'] [class*="bg-[#FFFFFF]"] {
+  background-color: #141E2B !important;
+}
+
+html[data-theme='dark'] [class*="bg-[#F7F6F1]"] {
+  background-color: #1B2836 !important;
+}
+
+html[data-theme='dark'] [class*="text-[#10231C]"],
+html[data-theme='dark'] [class*="text-[#14201B]"] {
+  color: #F2F0E8 !important;
+}
+
+html[data-theme='dark'] [class*="text-[#68756F]"] {
+  color: #93A3AC !important;
+}
+
+html[data-theme='dark'] [class*="border-[#E2E4DF]"] {
+  border-color: rgba(242, 240, 232, 0.12) !important;
+}
+
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
+  background-color: #1B2836 !important;
+  color: #F2F0E8 !important;
+  border-color: rgba(242, 240, 232, 0.16) !important;
 }
 @tailwind base;
 @tailwind components;
