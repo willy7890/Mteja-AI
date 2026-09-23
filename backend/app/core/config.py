@@ -12,13 +12,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Database Configuration (Inahitajika ili kusoma DATABASE_URL kutoka .env/Render)
-    DATABASE_URL: str = "sqlite+aiosqlite:///./test.db"
-
     # General App Settings
     PROJECT_NAME: str = "MTEJA AI API"
     APP_NAME: str = "Mteja AI"
-    DATABASE_URL: str = "sqlite+aiosqlite:///./mteja.db"  # badilisha kwenye .env kwa database halisi
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mteja_ai"
     FRONTEND_URL: str = "http://localhost:5173"
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
@@ -107,14 +104,11 @@ class Settings(BaseSettings):
         allowed_prefixes = (
             "postgresql+asyncpg://",
             "postgresql://",
-            "sqlite+aiosqlite://",
-            "sqlite://",
         )
 
         if not self.DATABASE_URL.startswith(allowed_prefixes):
             raise ValueError(
-                "DATABASE_URL must use PostgreSQL with asyncpg or "
-                "SQLite with aiosqlite"
+                "DATABASE_URL must use PostgreSQL with asyncpg"
             )
 
 
