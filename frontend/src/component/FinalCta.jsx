@@ -1,4 +1,5 @@
 import ScrollReveal from './ScrollReveal';
+import { Link } from 'react-router-dom';
 
 function FinalCta({ t }) {
   return (
@@ -29,12 +30,13 @@ function FinalCta({ t }) {
           </p>
 
           <div className="mt-8 flex justify-center gap-3 relative flex-wrap">
-            <button
+            <Link
+              to="/signup"
               className="px-6 py-3 rounded-full font-medium transition-transform hover:scale-[1.03]"
               style={{ background: t.accentText, color: t.accent }}
             >
               Start free trial
-            </button>
+            </Link>
             <button
               className="px-6 py-3 rounded-full font-medium border transition-colors"
               style={{ borderColor: t.accentText, color: t.accentText }}

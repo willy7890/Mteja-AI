@@ -1,8 +1,12 @@
 import secrets
+import shutil
+from pathlib import Path
+from uuid import uuid4
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
@@ -21,7 +25,7 @@ from app.core.security import (
 )
 from app.models.organization import Organization
 from app.models.otp import OTPChannel, OTPPurpose
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.auth import RegisterRequest, TokenResponse, UserResponse
 from app.schemas.otp import OTPResponse, SendOTPRequest, VerifyOTPRequest
 from app.services.otp_service import OTPService
@@ -167,11 +171,19 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     db.add(organization)
     await db.flush()
 
+    now = datetime.now(timezone.utc)
+    normalized_email = data.email.lower()
+    is_demo_admin = normalized_email == settings.DEMO_ADMIN_EMAIL.lower()
     user = User(
         email=data.email,
         full_name=data.full_name,
         hashed_password=hash_password(data.password),
         organization_id=organization.id,
+        is_superuser=False,
+        is_verified=not is_demo_admin,
+        role=UserRole.ADMIN if is_demo_admin else UserRole.OWNER,
+        trial_started_at=now,
+        trial_ends_at=now + timedelta(days=14),
     )
     db.add(user)
     await db.commit()
@@ -194,6 +206,18 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This admin account must be verified by a super admin before login.",
+        )
+
+    if user.trial_ends_at and user.trial_ends_at <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your 14-day free trial has ended.",
         )
 
     if not user.is_active:
@@ -232,6 +256,29 @@ async def refresh_token(token: str = Depends(oauth2_scheme)):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Inarudisha taarifa za mtumiaji aliyelog-in kwa sasa."""
+    return current_user
+
+
+@router.post("/profile/avatar", response_model=UserResponse)
+async def upload_profile_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files are supported")
+
+    static_dir = Path(__file__).resolve().parents[3] / "static" / "profile-avatars"
+    static_dir.mkdir(parents=True, exist_ok=True)
+    extension = Path(file.filename or "avatar").suffix.lower() or ".jpg"
+    filename = f"user-{current_user.id}-{uuid4().hex}{extension}"
+    destination = static_dir / filename
+    with destination.open("wb") as output:
+        shutil.copyfileobj(file.file, output)
+
+    current_user.avatar_url = f"/static/profile-avatars/{filename}"
+    await db.commit()
+    await db.refresh(current_user)
     return current_user
 
 

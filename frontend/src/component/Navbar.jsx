@@ -60,7 +60,7 @@ function Navbar({ t, dark, setDark }) {
     // real route, so NavPill (even once fixed above) had nothing to
     // detect as "this is a real path."
     { name: 'Login', href: '/login' },
-    { name: 'Request Demo', href: '#DemoPage' },
+    { name: 'Free trial', href: '/signup' },
   ];
 
   const ctaGradient = dark

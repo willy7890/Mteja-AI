@@ -68,7 +68,7 @@ function SignupPage({ t }) {
         organization_name: organizationName,
       });
 
-      navigate('/login', { state: { justSignedUp: true } });
+      navigate('/login', { state: { justSignedUp: true, trialDays: 14 } });
     } catch (err) {
       setSubmitError(err.message || 'Something went wrong. Please try again.');
     } finally {

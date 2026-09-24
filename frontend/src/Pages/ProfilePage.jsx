@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { apiGet } from '../api/Client';
+import { apiAssetUrl, apiAuthUpload, apiGet } from '../api/Client';
 import {
   User,
   Mail,
@@ -31,15 +31,23 @@ export const ProfilePage = ({ user: initialUser }) => {
       setUser(data);
       setName(data.full_name || initialUser.name);
       setEmail(data.email || initialUser.email);
+      if (data.avatar_url) setAvatar(apiAssetUrl(data.avatar_url));
     }).catch(() => {});
   }, [initialUser.email, initialUser.name]);
 
-  const handleAvatar = (event) => {
+  const handleAvatar = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const nextAvatar = URL.createObjectURL(file);
-    setAvatar(nextAvatar);
-    localStorage.setItem('mteja_profile_avatar', nextAvatar);
+    try {
+      const updatedUser = await apiAuthUpload('/api/v1/auth/profile/avatar', file);
+      if (updatedUser.avatar_url) {
+        const nextAvatar = apiAssetUrl(updatedUser.avatar_url);
+        setAvatar(nextAvatar);
+        localStorage.setItem('mteja_profile_avatar', nextAvatar);
+      }
+    } catch (error) {
+      setSaved(false);
+    }
   };
 
   const handleSave = (e) => {

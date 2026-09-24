@@ -82,6 +82,11 @@ class OTPService:
                     to=email, otp_code=otp.code, purpose=purpose.value
                 )
                 print(f"Email send result: {success}")
+                if not success:
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="OTP email could not be delivered. Please try again later.",
+                    )
 
         # Send via SMS
         elif channel == OTPChannel.SMS and phone:
