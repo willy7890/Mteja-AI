@@ -53,14 +53,6 @@ const platforms = [
 ];
 
 
-const hubScript = [
-  { from: "in", channel: "WhatsApp", text: "Is the blue jacket still available?" },
-  { from: "ai", text: "Yes! Available in M, L, XL. Want one held for you?" },
-  { from: "in", channel: "Instagram", text: "Do you ship to Mwanza?" },
-  { from: "ai", text: "Yes, 2–3 days delivery. Want me to start your order?" },
-];
-
-
 function useHubSize() {
   const [size, setSize] = useState(420);
 
@@ -145,19 +137,8 @@ function PlatformHub({ t, autoPlayTrigger = 0 }) {
       setHubTyping(false);
       return;
     }
-    if (hubVisible >= hubScript.length) return;
-
-    const isAi = hubScript[hubVisible].from === "ai";
-    if (isAi) {
-      setHubTyping(true);
-      const timer = setTimeout(() => {
-        setHubTyping(false);
-        setHubVisible((v) => v + 1);
-      }, 700);
-      return () => clearTimeout(timer);
-    }
-    const timer = setTimeout(() => setHubVisible((v) => v + 1), 900);
-    return () => clearTimeout(timer);
+    setHubVisible(0);
+    setHubTyping(false);
   }, [centerHovered, hubVisible]);
 
   return (
@@ -218,37 +199,10 @@ function PlatformHub({ t, autoPlayTrigger = 0 }) {
             MtejaAI replying live
           </div>
 
-          <div className="px-3.5 py-3 space-y-2 min-h-[150px] flex flex-col justify-end">
-            {hubScript.slice(0, hubVisible).map((msg, i) => (
-              <div key={i} className={`flex ${msg.from === "ai" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className="max-w-[85%] px-2.5 py-1.5 rounded-xl text-[11px] leading-snug"
-                  style={{
-                    background: msg.from === "ai" ? t.accent : `${t.text}0F`,
-                    color: msg.from === "ai" ? t.accentText : t.text,
-                  }}
-                >
-                  {msg.from === "in" && (
-                    <div className="text-[9px] font-semibold mb-0.5 opacity-60">{msg.channel}</div>
-                  )}
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-
-            {hubTyping && (
-              <div className="flex justify-end">
-                <div className="px-3 py-2 rounded-xl flex gap-1" style={{ background: t.accent }}>
-                  {[0, 1, 2].map((d) => (
-                    <span
-                      key={d}
-                      className="w-1 h-1 rounded-full animate-bounce"
-                      style={{ background: t.accentText, animationDelay: `${d * 0.12}s` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="px-3.5 py-3 min-h-[150px] flex items-center">
+            <p className="text-[11px] leading-snug" style={{ color: t.muted }}>
+              Real customer messages will appear here after you connect a channel.
+            </p>
           </div>
         </div>
       )}

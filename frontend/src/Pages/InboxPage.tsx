@@ -30,8 +30,42 @@ import {
   RefreshCw,
   ShoppingBag
 } from 'lucide-react';
-import { Conversation, ConversationFilter, ChannelType, PageId, ChatMessage } from '../../types';
 import { apiAssetUrl, apiAuthPost, apiAuthUpload, apiGet } from '../api/Client';
+
+type ChannelType = string;
+type PageId = string;
+type ConversationFilter = 'all' | 'unread' | 'ai-handled' | 'needs-attention' | 'assigned';
+type ChatMessage = {
+  id: string;
+  sender: string;
+  senderName: string;
+  text: string;
+  timestamp: string;
+  isAiReplied?: boolean;
+  intentDetected?: string;
+  attachments?: Array<{ name: string; size: string; url: string; duration?: string }>;
+};
+type Conversation = {
+  id: string;
+  customerName: string;
+  businessName?: string;
+  phone: string;
+  location: string;
+  avatar: string;
+  channel: ChannelType;
+  status: string;
+  priority: string;
+  unread: boolean;
+  isAiHandled: boolean;
+  assignedAgent: string;
+  lastMessage: string;
+  timestamp: string;
+  messages: ChatMessage[];
+  customerTags?: string[];
+  aiSuggestedReplies?: string[];
+  aiConfidence?: number;
+  totalValueTzs?: string | number;
+};
 
 interface InboxPageProps {
   conversations?: Conversation[];
@@ -49,11 +83,12 @@ export const InboxPage: React.FC<InboxPageProps> = ({
   channelFilter,
 }) => {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
+  const [localSelectedConvId, setLocalSelectedConvId] = useState(selectedConvId);
   const [filter, setFilter] = useState<ConversationFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [isAiTakeover, setIsAiTakeover] = useState(false);
-  const [showRightPanel, setShowRightPanel] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(false);
   const [activeSuggestedReplyIndex, setActiveSuggestedReplyIndex] = useState<number | null>(null);
   const [uploadedImage, setUploadedImage] = useState<{ name: string; size: string; url: string } | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -74,11 +109,15 @@ export const InboxPage: React.FC<InboxPageProps> = ({
   }, []);
 
   useEffect(() => {
+    setLocalSelectedConvId(selectedConvId);
+  }, [selectedConvId]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadTelegramConversations = async () => {
       try {
-        const data = await apiGet('/api/v1/conversations/conversations/?channel=telegram');
+        const data = await apiGet('/api/v1/conversations/conversations/');
         const rows = Array.isArray(data) ? data : data?.items || [];
         const mapped = rows.map((conversation: any) => {
           const messages = (conversation.messages || []).map((message: any) => ({
@@ -97,7 +136,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
             phone: `Chat ${conversation.customer_id}`,
             location: 'Telegram',
             avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(lastMessage?.senderName || 'Telegram')}`,
-            channel: 'telegram',
+            channel: conversation.channel || 'telegram',
             status: conversation.status,
             priority: 'normal',
             unread: false,
@@ -125,7 +164,12 @@ export const InboxPage: React.FC<InboxPageProps> = ({
     };
   }, []);
 
-  const activeConv = conversations.find((c) => c.id === selectedConvId) || conversations[0];
+  const activeConv = conversations.find((c) => c.id === (localSelectedConvId || selectedConvId));
+
+  const selectConversation = (id: string) => {
+    setLocalSelectedConvId(id);
+    onSelectConversation(id);
+  };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -355,9 +399,9 @@ export const InboxPage: React.FC<InboxPageProps> = ({
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col md:flex-row overflow-hidden bg-[#FFFFFF]">
+    <div className="min-h-[calc(100vh-4rem)] h-[calc(100vh-4rem)] flex flex-col md:flex-row overflow-hidden bg-[#FFFFFF]">
       {/* COLUMN 1: Conversation List (Left) */}
-      <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-[#E2E4DF] flex flex-col h-[min(42vh,22rem)] md:h-auto flex-shrink-0 bg-[#FFFFFF]">
+      <div className="w-full md:w-[320px] lg:w-[320px] border-b md:border-b-0 md:border-r border-[#E2E4DF] flex flex-col h-[min(42vh,22rem)] md:h-full flex-shrink-0 bg-[#FFFFFF]">
         {/* Search & Header */}
         <div className="p-3.5 border-b border-[#E2E4DF] space-y-2.5">
           <div className="flex items-center justify-between">
@@ -422,7 +466,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({
               return (
                 <div
                   key={conv.id}
-                  onClick={() => onSelectConversation(conv.id)}
+                  onClick={() => selectConversation(conv.id)}
                   className={`p-3.5 cursor-pointer transition-colors relative flex items-start gap-3 ${
                     isSelected ? 'bg-[#287A59]/5 border-l-3 border-[#287A59]' : 'hover:bg-[#F7F6F1]'
                   }`}
@@ -500,9 +544,9 @@ export const InboxPage: React.FC<InboxPageProps> = ({
                 />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-[#10231C] truncate">
+                    <button type="button" onClick={() => setShowRightPanel(true)} className="text-sm font-bold text-[#10231C] truncate hover:underline text-left">
                       {activeConv.customerName}
-                    </h3>
+                    </button>
                     <span className="w-2 h-2 rounded-full bg-[#35D98A]" title="Online" />
                     {activeConv.businessName && (
                       <span className="text-xs text-[#68756F] truncate hidden sm:inline">
@@ -788,20 +832,24 @@ export const InboxPage: React.FC<InboxPageProps> = ({
         )}
       </div>
 
-      {/* COLUMN 3: Customer Information (Right) */}
+      {/* Customer information drawer */}
       {showRightPanel && activeConv && (
-        <div className="hidden md:flex w-full md:w-80 lg:w-88 border-l border-[#E2E4DF] bg-white flex-col h-full flex-shrink-0 overflow-y-auto">
+        <>
+        <button type="button" aria-label="Close customer information" onClick={() => setShowRightPanel(false)} className="fixed inset-0 bg-black/30 z-40 md:hidden" />
+        <aside className="fixed right-0 top-0 z-50 w-full max-w-sm h-full border-l border-[#E2E4DF] bg-white flex flex-col overflow-y-auto shadow-2xl">
           {/* Header */}
           <div className="p-4 border-b border-[#E2E4DF] flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#10231C]">
               Customer Information
             </h3>
-            <button
-              onClick={() => onNavigate('customers')}
-              className="text-xs text-[#287A59] font-bold hover:underline flex items-center gap-1"
-            >
-              Full Profile <ExternalLink className="w-3 h-3" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => onNavigate('customers')} className="text-xs text-[#287A59] font-bold hover:underline flex items-center gap-1">
+                Full Profile <ExternalLink className="w-3 h-3" />
+              </button>
+              <button onClick={() => setShowRightPanel(false)} className="p-1.5 rounded-lg text-[#68756F] hover:bg-[#F7F6F1]" aria-label="Close customer information">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <div className="p-5 space-y-6">
@@ -893,7 +941,8 @@ export const InboxPage: React.FC<InboxPageProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </aside>
+        </>
       )}
     </div>
   );

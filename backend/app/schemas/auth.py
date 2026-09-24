@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -23,8 +24,14 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     full_name: str
+    role: str | None = None
     organization_id: int
     is_active: bool
+    is_superuser: bool
+    is_verified: bool
+    avatar_url: str | None = None
+    trial_started_at: datetime | None = None
+    trial_ends_at: datetime | None = None
 
     class Config:
         from_attributes = True

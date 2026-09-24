@@ -22,7 +22,7 @@ export const TopHeader = ({
   const [pageSwitcherOpen, setPageSwitcherOpen] = useState(false);
   const dropdownRef = useRef(null);
   const switcherRef = useRef(null);
-  const profileAvatar = localStorage.getItem('mteja_profile_avatar');
+  const profileAvatar = user?.avatar_url || localStorage.getItem('mteja_profile_avatar');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -40,6 +40,7 @@ export const TopHeader = ({
       analytics: "Performance Analytics", channels: "Channels & Integrations",
       team: "Team Members", settings: "Platform Settings", billing: "Billing & Subscriptions",
       notifications: "Notifications & Alerts", profile: "User Profile",
+      admin: "Super Admin Verification",
     };
     return titles[page] || "Overview";
   };
@@ -59,6 +60,9 @@ export const TopHeader = ({
     { id: "notifications", label: "Notifications Center", category: "Core" },
     { id: "profile", label: "My Profile", category: "Account" },
   ];
+  if (user?.is_superuser) {
+    allPages.push({ id: "admin", label: "Super Admin Verification", category: "Admin" });
+  }
 
   return (
     <header className="min-h-16 flex items-center justify-between gap-2 px-3 sm:px-8 py-2 sticky top-0 z-20" style={{ background: t.card, borderBottom: `1px solid ${t.border}` }}>

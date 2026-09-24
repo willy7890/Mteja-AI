@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Inbox, Users, Bot, Zap, BarChart3,
+  LayoutDashboard, Inbox, Users, Bot, Zap, BarChart3, ShieldCheck,
   UserCheck, Settings, CreditCard, ChevronRight,
 } from "lucide-react";
 import {
@@ -26,7 +26,7 @@ export const Sidebar = ({
   onSelectChannelFilter,
 }) => {
   const current = currentPage || activePage || "dashboard";
-  const profileAvatar = localStorage.getItem('mteja_profile_avatar');
+  const profileAvatar = user?.avatar_url || localStorage.getItem('mteja_profile_avatar');
 
   const mainNavItems = [
     { id: "dashboard", label: "Overview", icon: LayoutDashboard },
@@ -36,6 +36,9 @@ export const Sidebar = ({
     { id: "automations", label: "Automations", icon: Zap },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
   ];
+  if (user?.is_superuser) {
+    mainNavItems.push({ id: "admin", label: "Admin", icon: ShieldCheck });
+  }
   const channelItems = [
     { channel: "whatsapp", label: "WhatsApp", icon: FaWhatsapp, count: "Active" },
     { channel: "telegram", label: "Telegram", icon: FaTelegram, count: "Active" },
@@ -74,12 +77,7 @@ export const Sidebar = ({
         <div className="p-6 pb-2">
           <div className="flex items-center justify-between mb-6">
             <button onClick={() => handleItemNavigate("dashboard")} className="flex items-center gap-2.5 text-left" title="MtejaAI Dashboard">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: t.accent }}>
-                <div className="w-4 h-4 rounded-full" style={{ background: t.accentText, opacity: 0.85 }} />
-              </div>
-              <span className="text-xl font-bold tracking-tight" style={{ color: t.text }}>
-                Mteja<span style={{ color: t.accent }}>AI</span>
-              </span>
+              <img src="/signi-ai.png" alt="Signi AI" className="h-9 w-auto max-w-[150px] object-contain" />
             </button>
 
             {onCloseMobile && (
