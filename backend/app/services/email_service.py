@@ -10,6 +10,11 @@ except ImportError:
 
 from app.core.config import settings
 
+try:
+    from app.intergration.email.adapter import EmailAdapter
+except ImportError:
+    EmailAdapter = None
+
 logger = logging.getLogger(__name__)
 
 fm = None
@@ -42,6 +47,20 @@ class EmailService:
 
     @staticmethod
     async def send_email(to: str, subject: str, html: str) -> bool:
+        email_api_key = settings.EMAIL_API_KEY or settings.RESEND_API_KEY
+        if email_api_key and EmailAdapter is not None:
+            result = await EmailAdapter(api_key=email_api_key).send(
+                to=to,
+                content="Your Mteja AI verification code is in this email.",
+                subject=subject,
+                html=html,
+            )
+            if result.get("status") == "sent":
+                logger.info(f"Email sent successfully to {to}")
+                return True
+            logger.error(f"Email provider rejected message: {result.get('error')}")
+            return False
+
         if fm is None:
             logger.error(
                 "Email delivery is unavailable: fastapi-mail is missing or settings are incomplete"

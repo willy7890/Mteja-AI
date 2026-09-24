@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "Mteja AI"
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mteja_ai"
     FRONTEND_URL: str = "http://localhost:5173"
+    SUPERADMIN_EMAIL: str = "wilbardmagaso777@gmail.com"
+    DEMO_ADMIN_EMAIL: str = "admin@mteja-ai.co.tz"
     CORS_ORIGINS: str = (
         "http://localhost:5173,"
         "http://localhost:3000,"
@@ -56,6 +58,11 @@ class Settings(BaseSettings):
     MAIL_SSL_TLS: bool = False
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
+    EMAIL_PROVIDER: str = "resend"
+    EMAIL_API_KEY: Optional[str] = None
+    RESEND_API_KEY: Optional[str] = None
+    EMAIL_FROM: str = "onboarding@resend.dev"
+    EMAIL_FROM_NAME: str = "Mteja AI"
 
     # Africa's Talking & SMS Credentials
     AT_USERNAME: Optional[str] = "sandbox"

@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
 import { apiPost, apiPostForm } from '../api/Client';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? 'https://mteja-ai-upyg.onrender.com'
+    : 'http://127.0.0.1:8000')
+).replace(/\/$/, '');
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -11,6 +17,7 @@ function isValidEmail(value) {
 
 function LoginPage({ t }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState(null);
 
@@ -18,7 +25,13 @@ function LoginPage({ t }) {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [submitNotice, setSubmitNotice] = useState(
+    location.state?.justSignedUp
+      ? `Your ${location.state.trialDays || 14}-day free trial has started. Log in to continue.`
+      : ''
+  );
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
   const [pendingTokens, setPendingTokens] = useState(null);
@@ -27,11 +40,16 @@ function LoginPage({ t }) {
     const params = new URLSearchParams(window.location.search);
     const accessToken = params.get('access_token');
     const refreshToken = params.get('refresh_token');
+    const oauthError = params.get('error_description') || params.get('error');
 
     if (accessToken && refreshToken) {
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', refreshToken);
       navigate('/dashboard', { replace: true });
+    } else if (oauthError) {
+      setSubmitError(`Google login failed: ${oauthError}`);
+      setIsGoogleSubmitting(false);
+      navigate('/login', { replace: true });
     }
   }, [navigate]);
 
@@ -57,6 +75,7 @@ function LoginPage({ t }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitError('');
+    setSubmitNotice('');
 
     const foundErrors = validate();
     setErrors(foundErrors);
@@ -129,6 +148,12 @@ function LoginPage({ t }) {
             style={{ background: 'rgba(229,72,77,0.1)', color: '#E5484D' }}
           >
             {submitError}
+          </div>
+        )}
+
+        {submitNotice && !submitError && (
+          <div className="mb-5 px-4 py-3 rounded-xl text-sm" style={{ background: `${t.accent}18`, color: t.accent }}>
+            {submitNotice}
           </div>
         )}
 
@@ -211,9 +236,14 @@ function LoginPage({ t }) {
               <label className="text-xs font-medium" style={{ color: t.muted }}>
                 Password
               </label>
-              <a href="#" className="text-xs font-medium hover:opacity-70" style={{ color: t.accent }}>
+              <button
+                type="button"
+                onClick={() => setSubmitError('Password reset is not available yet. Please contact your administrator.')}
+                className="text-xs font-medium hover:opacity-70"
+                style={{ color: t.accent }}
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
             <div className="relative">
               <Lock
@@ -270,19 +300,22 @@ function LoginPage({ t }) {
 
         {!otpStep && <button
           type="button"
+          disabled={isGoogleSubmitting || isSubmitting}
           onClick={() => {
+            setSubmitError('');
+            setIsGoogleSubmitting(true);
             window.location.href = `${API_BASE_URL}/api/v1/auth/google`;
           }}
-          className="w-full py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+          className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.01] disabled:opacity-70 disabled:hover:scale-100"
           style={{ border: `1px solid ${t.border}`, color: t.text }}
         >
-          <svg width="16" height="16" viewBox="0 0 48 48">
+          {isGoogleSubmitting ? <Loader2 size={16} className="animate-spin" /> : <svg width="16" height="16" viewBox="0 0 48 48">
             <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.4 0 24 0 14.6 0 6.5 5.4 2.5 13.2l7.9 6.1C12.3 13.1 17.7 9.5 24 9.5z"/>
             <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.8-9.8 6.8-17.4z"/>
             <path fill="#FBBC05" d="M10.4 28.3A14.4 14.4 0 0 1 9.6 24c0-1.5.3-3 .7-4.3l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.5 10.7l7.9-6.4z"/>
             <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.6 2.3-6.3 0-11.7-3.6-13.6-8.8l-7.9 6.4C6.5 42.6 14.6 48 24 48z"/>
-          </svg>
-          Continue with Google
+          </svg>}
+          {isGoogleSubmitting ? 'Connecting to Google…' : 'Continue with Google'}
         </button>}
 
         {!otpStep && <p className="text-center text-sm mt-8" style={{ color: t.muted }}>

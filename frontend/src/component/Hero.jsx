@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import PlatformHub from './PlatformHub';
 
 
@@ -34,12 +35,13 @@ function Hero({ t }) {
           before your customer looks elsewhere.
         </p>
         <div className="mt-7 flex justify-center gap-3 headline-line" style={{ animationDelay: '0.45s' }}>
-          <button
+          <Link
+            to="/signup"
             className="px-6 py-3 rounded-full font-medium transition-transform hover:scale-[1.03]"
             style={{ background: t.accent, color: t.accentText }}
           >
             Start free trial
-          </button>
+          </Link>
           <button
             onClick={() => setDemoTrigger((n) => n + 1)}
             onMouseEnter={() => setSecondaryHover(true)}

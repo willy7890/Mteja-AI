@@ -19,6 +19,7 @@ import BillingPage from './Pages/BillingPage';
 import SettingsPage from './Pages/SettingsPage';
 import NotificationsPage from './Pages/NotificationPage';
 import ProfilePage from './Pages/ProfilePage';
+import AdminPage from './Pages/AdminPage';
 
 const defaultTeamMembers = [
   {
@@ -144,10 +145,11 @@ function App() {
           <Route path="analytics" element={<AnalyticsPage t={t} />} />
           <Route path="channels" element={<ChannelsPage t={t} />} />
           <Route path="team" element={<TeamPage teamMembers={defaultTeamMembers} />} />
-          <Route path="billing" element={<BillingPage billingInfo={defaultBillingInfo} />} />
+          <Route path="billing" element={<BillingPage billingInfo={defaultBillingInfo} t={t} />} />
           <Route path="settings" element={<SettingsPage t={t} />} />
           <Route path="notifications" element={<NotificationsPage notifications={defaultNotifications} />} />
           <Route path="profile" element={<ProfilePage user={defaultProfile} t={t} />} />
+          <Route path="admin" element={<AdminPage t={t} />} />
         </Route>
       </Routes>
     </BrowserRouter>

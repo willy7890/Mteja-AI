@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import get_current_user, hash_password
+from app.core.config import settings
 from app.models.conversation import Conversation
 from app.models.organization import Organization
 from app.models.user import User, UserRole
@@ -16,6 +17,36 @@ router = APIRouter(prefix="/admin", tags=["Admin Dashboard"])
 async def require_admin(user: User = Depends(get_current_user)) -> User:
     if not user.is_superuser and user.role not in {UserRole.ADMIN, UserRole.OWNER}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    return user
+
+
+async def require_super_admin(user: User = Depends(get_current_user)) -> User:
+    if not user.is_superuser or user.email.lower() != settings.SUPERADMIN_EMAIL.lower():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Super admin access required")
+    return user
+
+
+@router.get("/pending-verifications")
+async def pending_verifications(
+    current_user: User = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.is_verified.is_(False)).order_by(User.created_at.asc()))
+    return result.scalars().all()
+
+
+@router.post("/users/{user_id}/verify")
+async def verify_user(
+    user_id: int,
+    current_user: User = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_verified = True
+    await db.commit()
+    await db.refresh(user)
     return user
 
 
