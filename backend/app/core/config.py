@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Mteja AI"
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mteja_ai"
     FRONTEND_URL: str = "http://localhost:5173"
+    CORS_ORIGINS: str = "http://localhost:5173"
     SECRET_KEY: str = "super-secret-key-change-this-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     RATE_LIMIT_ENABLED: bool = True
