@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "MTEJA AI API"
     APP_NAME: str = "Mteja AI"
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mteja_ai"
-    FRONTEND_URL: str = "http://localhost:5173"
+    FRONTEND_URL: str = "https://mtejaai.signiai.co.tz"
     SUPERADMIN_EMAIL: str = "wilbardmagaso777@gmail.com"
     DEMO_ADMIN_EMAIL: str = "admin@mteja-ai.co.tz"
     CORS_ORIGINS: str = (
@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     VOICE_TTS_VOICE: str = "alloy"
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
+    GOOGLE_REDIRECT_URI: str = "https://mteja-ai-upyg.onrender.com/api/v1/auth/google/callback"
 
     # Mail / SMTP Configuration
     MAIL_USERNAME: Optional[str] = None
