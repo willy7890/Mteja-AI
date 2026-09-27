@@ -83,6 +83,8 @@ class OTPService:
                 )
                 print(f"Email send result: {success}")
                 if not success:
+                    otp.is_used = True
+                    await db.commit()
                     raise HTTPException(
                         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                         detail="OTP email could not be delivered. Please try again later.",

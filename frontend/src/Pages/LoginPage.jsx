@@ -42,9 +42,12 @@ function LoginPage({ t }) {
     const refreshToken = params.get('refresh_token');
     const oauthError = params.get('error_description') || params.get('error');
 
+    setIsGoogleSubmitting(false);
+
     if (accessToken && refreshToken) {
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', refreshToken);
+      window.history.replaceState(window.history.state, '', window.location.pathname);
       navigate('/dashboard', { replace: true });
     } else if (oauthError) {
       setSubmitError(`Google login failed: ${oauthError}`);
@@ -304,7 +307,11 @@ function LoginPage({ t }) {
           onClick={() => {
             setSubmitError('');
             setIsGoogleSubmitting(true);
-            window.location.href = `${API_BASE_URL}/api/v1/auth/google`;
+            const currentOrigin = window.location.origin;
+            const redirectTarget = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
+              ? `http://localhost:5173`
+              : currentOrigin;
+            window.location.href = `${API_BASE_URL}/api/v1/auth/google?redirect_to=${encodeURIComponent(redirectTarget)}`;
           }}
           className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.01] disabled:opacity-70 disabled:hover:scale-100"
           style={{ border: `1px solid ${t.border}`, color: t.text }}
