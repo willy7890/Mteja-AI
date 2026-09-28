@@ -1,4 +1,3 @@
-import os
 import asyncio
 import joblib
 import numpy as np
@@ -42,11 +41,18 @@ from app.integrations.telegram.webhook import router as telegram_webhook_router
 from app.routes.telegram import router as telegram_ws_router
 
 
-# Global ML artifacts
+# ============================================================
+# GLOBAL ML ARTIFACTS
+# ============================================================
+
 model_vectorizer = None
 model_X_vectors = None
 model_y_answers = None
 
+
+# ============================================================
+# REQUEST / RESPONSE SCHEMAS
+# ============================================================
 
 class QueryRequest(BaseModel):
     question: str
@@ -58,137 +64,408 @@ class PredictionResponse(BaseModel):
     status: str
 
 
+# ============================================================
+# PATHS
+# ============================================================
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 MODEL_PATH = BASE_DIR / "models" / "intent_classifier.pkl"
+
 STATIC_DIR = BASE_DIR / "static"
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global model_vectorizer, model_X_vectors, model_y_answers
+# ============================================================
+# LOAD KNOWLEDGE BASE + ML MODEL IN BACKGROUND
+# ============================================================
 
-    # DB init
-    database_error = None
-    for attempt in range(1, 4):
-        try:
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            print("✅ Database connection initialized successfully.")
-            break
-        except Exception as e:
-            database_error = e
-            if attempt == 3:
-                print(f"❌ Database initialization failed: {e}")
-                raise
-            print(f"⚠️ Database connection attempt {attempt} failed; retrying...")
-            await asyncio.sleep(attempt * 2)
+async def _load_kb_and_model():
+    """
+    Heavy work runs AFTER the server has started.
 
-    # Knowledge base
+    Knowledge Base and ML model are loaded in the background
+    so FastAPI does not have to wait for them before becoming ready.
+    """
+
+    global model_vectorizer
+    global model_X_vectors
+    global model_y_answers
+
+    # --------------------------------------------------------
+    # KNOWLEDGE BASE
+    # --------------------------------------------------------
+
     try:
         async with AsyncSession(engine) as session:
             await kb_service.load_from_db(session)
-        print(f"✅ Knowledge base loaded: {len(kb_service.documents)} documents")
-    except Exception as e:
-        print(f"⚠️ Failed to load knowledge base: {e}")
 
-    # ML model
+        print(
+            f"✅ Knowledge base loaded: "
+            f"{len(kb_service.documents)} documents"
+        )
+
+    except Exception as e:
+        print(
+            f"⚠️ Failed to load knowledge base: {e}"
+        )
+
+    # --------------------------------------------------------
+    # ML MODEL
+    # --------------------------------------------------------
+
     if MODEL_PATH.exists():
+
         try:
             artifact = joblib.load(MODEL_PATH)
+
             model_vectorizer = artifact["vectorizer"]
             model_X_vectors = artifact["X_vectors"]
             model_y_answers = artifact["y_answers"]
-            print(f"✅ Intent Classifier loaded successfully ({model_X_vectors.shape[0]} vectors).")
+
+            print(
+                f"✅ Intent Classifier loaded "
+                f"({model_X_vectors.shape[0]} vectors)."
+            )
+
         except Exception as e:
-            print(f"⚠️ Failed to load ML model artifact: {e}")
+
+            print(
+                f"⚠️ Failed to load ML model: {e}"
+            )
+
     else:
-        print(f"⚠️ Model artifact not found at {MODEL_PATH}. ML predictions disabled.")
 
-    print("🚀 MTEJA AI application startup complete.")
+        print(
+            f"⚠️ Model not found at {MODEL_PATH}"
+        )
+
+
+# ============================================================
+# FASTAPI LIFESPAN
+# ============================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    # ========================================================
+    # DATABASE INITIALIZATION
+    # ========================================================
+
+    for attempt in range(1, 4):
+
+        try:
+
+            async with engine.begin() as conn:
+
+                await conn.run_sync(
+                    Base.metadata.create_all
+                )
+
+            print(
+                "✅ Database connection initialized successfully."
+            )
+
+            break
+
+        except Exception as e:
+
+            if attempt == 3:
+
+                print(
+                    f"❌ Database initialization failed: {e}"
+                )
+
+                raise
+
+            print(
+                f"⚠️ DB attempt {attempt} failed; retrying..."
+            )
+
+            await asyncio.sleep(
+                attempt * 2
+            )
+
+    # ========================================================
+    # START HEAVY LOADING IN BACKGROUND
+    # ========================================================
+
+    asyncio.create_task(
+        _load_kb_and_model()
+    )
+
+    print(
+        "🚀 MTEJA AI application startup complete "
+        "(KB/model loading in background)."
+    )
+
+    # ========================================================
+    # SERVER IS READY
+    # ========================================================
+
     yield
-    print("🛑 MTEJA AI application shutting down...")
 
+    # ========================================================
+    # SHUTDOWN
+    # ========================================================
+
+    print(
+        "🛑 MTEJA AI application shutting down..."
+    )
+
+
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
 
 app = FastAPI(
+
     title=(
         settings.PROJECT_NAME
         if hasattr(settings, "PROJECT_NAME")
-        else getattr(settings, "APP_NAME", "MTEJA AI API")
+        else getattr(
+            settings,
+            "APP_NAME",
+            "MTEJA AI API"
+        )
     ),
+
     version="0.1.0",
+
     docs_url="/docs",
+
     redoc_url="/redoc",
+
     lifespan=lifespan,
 )
 
 
+# ============================================================
 # CORS
+# ============================================================
+
 app.add_middleware(
+
     CORSMiddleware,
+
     allow_origins=[
         origin.strip()
         for origin in settings.CORS_ORIGINS.split(",")
         if origin.strip()
     ],
+
     allow_credentials=True,
+
     allow_methods=["*"],
+
     allow_headers=["*"],
 )
 
 
-# Rate limit (enable when ready)
+# ============================================================
+# RATE LIMIT
+# ============================================================
+
+# Enable when ready
 # app.add_middleware(RateLimitMiddleware)
 
 
-# Routers
-app.include_router(telegram_webhook_router)
-app.include_router(telegram_ws_router)
-app.include_router(api_router, prefix="/api")
-app.include_router(analytics_router, prefix="/api/v1")
-app.include_router(broadcast_router)
-app.include_router(webhook_router)
+# ============================================================
+# ROUTERS
+# ============================================================
+
+app.include_router(
+    telegram_webhook_router
+)
+
+app.include_router(
+    telegram_ws_router
+)
+
+app.include_router(
+    api_router,
+    prefix="/api"
+)
+
+app.include_router(
+    analytics_router,
+    prefix="/api/v1"
+)
+
+app.include_router(
+    broadcast_router
+)
+
+app.include_router(
+    webhook_router
+)
 
 
-@app.get("/", tags=["Health"])
+# ============================================================
+# ROOT
+# ============================================================
+
+@app.get(
+    "/",
+    tags=["Health"]
+)
 async def root():
-    return {"message": "MTEJA AI API is running", "docs": "/docs"}
+
+    return {
+        "message": "MTEJA AI API is running",
+        "docs": "/docs"
+    }
 
 
-@app.get("/health", tags=["Health"])
+# ============================================================
+# HEALTH CHECK
+# ============================================================
+
+@app.get(
+    "/health",
+    tags=["Health"]
+)
 async def health():
-    return {"status": "ok"}
+
+    return {
+        "status": "ok"
+    }
 
 
-@app.post("/predict", response_model=PredictionResponse, tags=["ML Engine"])
-async def predict_intent(payload: QueryRequest):
-    if model_vectorizer is None or model_X_vectors is None or model_y_answers is None:
-        raise HTTPException(status_code=503, detail="Intent classification model is not loaded.")
+# ============================================================
+# ML INTENT PREDICTION
+# ============================================================
 
-    clean_query = payload.question.lower().strip()
+@app.post(
+    "/predict",
+    response_model=PredictionResponse,
+    tags=["ML Engine"]
+)
+async def predict_intent(
+    payload: QueryRequest
+):
+
+    # --------------------------------------------------------
+    # CHECK IF MODEL IS READY
+    # --------------------------------------------------------
+
+    if (
+        model_vectorizer is None
+        or model_X_vectors is None
+        or model_y_answers is None
+    ):
+
+        raise HTTPException(
+            status_code=503,
+            detail="Intent classification model is not loaded."
+        )
+
+    # --------------------------------------------------------
+    # CLEAN QUESTION
+    # --------------------------------------------------------
+
+    clean_query = (
+        payload.question
+        .lower()
+        .strip()
+    )
+
     if not clean_query:
-        raise HTTPException(status_code=400, detail="Question payload cannot be empty.")
 
-    query_vector = model_vectorizer.transform([clean_query])
-    similarities = cosine_similarity(query_vector, model_X_vectors)[0]
-    best_idx = int(np.argmax(similarities))
-    confidence_score = float(similarities[best_idx]) * 100
+        raise HTTPException(
+            status_code=400,
+            detail="Question payload cannot be empty."
+        )
+
+    # --------------------------------------------------------
+    # VECTORIZE QUESTION
+    # --------------------------------------------------------
+
+    query_vector = (
+        model_vectorizer.transform(
+            [clean_query]
+        )
+    )
+
+    # --------------------------------------------------------
+    # CALCULATE SIMILARITY
+    # --------------------------------------------------------
+
+    similarities = cosine_similarity(
+        query_vector,
+        model_X_vectors
+    )[0]
+
+    # --------------------------------------------------------
+    # FIND BEST MATCH
+    # --------------------------------------------------------
+
+    best_idx = int(
+        np.argmax(similarities)
+    )
+
+    confidence_score = (
+        float(similarities[best_idx]) * 100
+    )
+
+    # --------------------------------------------------------
+    # CONFIDENCE THRESHOLD
+    # --------------------------------------------------------
 
     CONFIDENCE_THRESHOLD = 15.0
 
+    # --------------------------------------------------------
+    # MATCH FOUND
+    # --------------------------------------------------------
+
     if confidence_score >= CONFIDENCE_THRESHOLD:
+
         return PredictionResponse(
-            matched_answer=model_y_answers[best_idx],
-            confidence=round(confidence_score, 2),
+
+            matched_answer=model_y_answers[
+                best_idx
+            ],
+
+            confidence=round(
+                confidence_score,
+                2
+            ),
+
             status="success",
         )
 
+    # --------------------------------------------------------
+    # FALLBACK
+    # --------------------------------------------------------
+
     return PredictionResponse(
-        matched_answer="Samahani, sijaelewa swali lako. Tafadhali jaribu kuuliza kwa njia nyingine.",
-        confidence=round(confidence_score, 2),
+
+        matched_answer=(
+            "Samahani, sijaelewa swali lako. "
+            "Tafadhali jaribu kuuliza kwa njia nyingine."
+        ),
+
+        confidence=round(
+            confidence_score,
+            2
+        ),
+
         status="fallback",
     )
 
 
-# Static files
-STATIC_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+# ============================================================
+# STATIC FILES
+# ============================================================
+
+STATIC_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+app.mount(
+    "/static",
+    StaticFiles(
+        directory=str(STATIC_DIR)
+    ),
+    name="static"
+)
