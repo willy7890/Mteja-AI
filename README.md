@@ -487,8 +487,9 @@ GET    /api/v1/dashboard/activity          # Message/lead activity over time
 
 | Role | Name | Responsibility |
 |---|---|---|
-| **Project Lead / CRM & Data Layer** | Khamis Mgofi | Architecture, contacts/pipeline API, code review, delivery |
-| **Automation Engine** | Wilbard Magaso | Background workers, message routing logic |
+| **Automation Engine** | Wilbard Magaso | Background workers, message routing logic, API intergration, Google login, project deployment, frontend design |
+| **Project Lead / CRM & Data Layer** | Khamis Mgofi | Architecture, contacts/pipeline API, code review, delivery, frontend design |
+| **** | Jesca Roja | Data analysis, model training, machine learning, Agentic AI working flow|
 | **Integration & Frontend** | Cisco Liberati | SMS/email integration, React dashboard, agent feature |
 
 *Developed at **Mbeya University of Science and Technology (MUST)**, Tanzania*
