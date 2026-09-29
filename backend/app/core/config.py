@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "Mteja AI"
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mteja_ai"
     FRONTEND_URL: str = "https://mtejaai.signiai.co.tz"
+    ALLOWED_REDIRECTS: str = ""
+    ENVIRONMENT: str = "production"
     SUPERADMIN_EMAIL: str = "wilbardmagaso777@gmail.com"
     DEMO_ADMIN_EMAIL: str = "admin@mteja-ai.co.tz"
     CORS_ORIGINS: str = (
@@ -25,7 +27,7 @@ class Settings(BaseSettings):
         "https://mtejaai.signiai.co.tz,"
         "https://www.mtejaai.signiai.co.tz"
     )
-    SECRET_KEY: str = "super-secret-key-change-this-in-production"
+    SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_WINDOW_SECONDS: int = 60
@@ -114,6 +116,9 @@ class Settings(BaseSettings):
         return url
 
     def model_post_init(self, __context):
+        if not self.SECRET_KEY:
+            raise ValueError("SECRET_KEY must be set through the environment")
+
         allowed_prefixes = (
             "postgresql+asyncpg://",
             "postgresql://",

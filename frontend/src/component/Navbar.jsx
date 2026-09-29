@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
@@ -23,7 +23,7 @@ function NavPill({ href, children, t, dark, onClick }) {
     onMouseEnter: () => setIsHover(true),
     onMouseLeave: () => setIsHover(false),
     onClick,
-    className: 'px-4 py-1.5 rounded-full text-sm transition-colors duration-150',
+    className: 'min-h-11 inline-flex items-center px-4 py-1.5 rounded-full text-sm transition-colors duration-150',
     style: {
       border: `1px solid ${t.border}`,
       color: t.text,
@@ -53,6 +53,11 @@ function Navbar({ t, dark, setDark }) {
   const [isOpen, setIsOpen] = useState(false);
   const ctaRef = useRef(null);
 
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
   const Navlinks = [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/#AboutPage' },
@@ -76,12 +81,12 @@ function Navbar({ t, dark, setDark }) {
   return (
     <nav
       className="fixed top-0 w-full z-50 backdrop-blur-md border-b"
-      style={{ background: t.bg, borderColor: t.border }}
+      style={{ background: t.bg, borderColor: t.border, paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-        <span className="text-lg font-semibold" style={{ color: t.text }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center min-h-14 sm:min-h-16">
+        <Link to="/" onClick={() => setIsOpen(false)} className="text-lg font-semibold" style={{ color: t.text }}>
           Mteja<span style={{ color: t.accent }}>AI</span>
-        </span>
+        </Link>
 
         <div className="hidden md:flex items-center gap-3 text-sm">
           {Navlinks.map((link) => (
@@ -96,7 +101,7 @@ function Navbar({ t, dark, setDark }) {
             ref={ctaRef}
             to="/signup"
             onMouseMove={handleCtaMove}
-            className="px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
+            className="min-h-11 px-5 py-2 rounded-full font-medium text-white transition-[background] duration-150"
             style={{ background: ctaGradient, '--x': '50%', '--y': '50%' }}
           >
             Get started
@@ -104,31 +109,38 @@ function Navbar({ t, dark, setDark }) {
         </div>
 
         <button
-          className="md:hidden"
+          className="md:hidden min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg focus-visible:outline focus-visible:outline-2"
           style={{ color: t.text }}
           onClick={() => setIsOpen((o) => !o)}
-          aria-label="Toggle menu"
+          aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={isOpen}
+          aria-controls="mobile-navigation"
         >
           {isOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
-      {isOpen && (
-        <div
-          className="md:hidden px-6 pb-5 flex flex-col gap-3 text-sm"
-          style={{ background: t.bg, color: t.text }}
-        >
+      <div
+        id="mobile-navigation"
+        aria-hidden={!isOpen}
+        inert={!isOpen}
+        className={`md:hidden overflow-hidden transition-[max-height,opacity] duration-200 ${isOpen ? 'max-h-[80dvh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+        style={{ background: t.bg, color: t.text }}
+      >
+        <div className="px-4 sm:px-6 pb-5 flex flex-col gap-2 text-sm">
           {Navlinks.map((link) => (
             <NavPill key={link.name} href={link.href} t={t} dark={dark} onClick={() => setIsOpen(false)}>
               {link.name}
             </NavPill>
           ))}
+          <Link to="/signup" onClick={() => setIsOpen(false)} className="min-h-11 inline-flex items-center justify-center rounded-full font-medium"
+            style={{ background: t.accent, color: t.accentText }}>Get started</Link>
           <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: t.border }}>
             <span style={{ color: t.text }}>Theme</span>
             <ThemeToggle t={t} dark={dark} setDark={setDark} />
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 }

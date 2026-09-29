@@ -1,11 +1,21 @@
 import pytest
+from sqlalchemy import select
+from app.models.user import User
+from app.services.email_service import EmailService
 
 @pytest.mark.asyncio
-async def test_multi_tenant_isolation(client):
+async def test_multi_tenant_isolation(client, db_session, monkeypatch):
+    async def delivered(**kwargs):
+        return True
+
+    monkeypatch.setattr(EmailService, "send_otp_email", delivered)
     res_a = await client.post("/api/v1/auth/register", json={
         "email": "org_a@mteja.ai", "full_name": "User A",
         "password": "Password123", "organization_name": "Org A"
     })
+    user_a = (await db_session.execute(select(User).where(User.email == "org_a@mteja.ai"))).scalar_one()
+    user_a.email_verified = True
+    await db_session.commit()
     token_a = (await client.post("/api/v1/auth/login", data={
         "username": "org_a@mteja.ai", "password": "Password123"
     })).json()["access_token"]
@@ -14,6 +24,9 @@ async def test_multi_tenant_isolation(client):
         "email": "org_b@mteja.ai", "full_name": "User B",
         "password": "Password123", "organization_name": "Org B"
     })
+    user_b = (await db_session.execute(select(User).where(User.email == "org_b@mteja.ai"))).scalar_one()
+    user_b.email_verified = True
+    await db_session.commit()
     token_b = (await client.post("/api/v1/auth/login", data={
         "username": "org_b@mteja.ai", "password": "Password123"
     })).json()["access_token"]

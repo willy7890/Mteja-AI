@@ -5,6 +5,7 @@ import DashboardLayout from './component/DashboardLayout';
 import LandingPage from './Pages/LandingPage';
 import LoginPage from './Pages/LoginPage';
 import SignupPage from './Pages/SignupPage';
+import ForgotPasswordPage from './Pages/ForgotPasswordPage';
 import TermsOfService from './Pages/TermsOfService';
 import PrivacyPolicy from './Pages/PrivacyPolicy';
 import DashboardPage from './Pages/DashboardPage';
@@ -130,6 +131,7 @@ function App() {
           <Route path="/" element={<LandingPage t={t} />} />
           <Route path="/login" element={<LoginPage t={t} />} />
           <Route path="/signup" element={<SignupPage t={t} />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage t={t} />} />
           <Route path="/terms" element={<TermsOfService t={t} />} />
           <Route path="/privacy" element={<PrivacyPolicy t={t} />} />
         </Route>
