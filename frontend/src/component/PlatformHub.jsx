@@ -1,37 +1,86 @@
 import { useEffect, useState, useRef } from "react";
-import { MessageCircle, Mail, Camera, Phone, Send, MessageSquare } from "lucide-react";
+import {
+  MessageCircle,
+  Mail,
+  Camera,
+  Phone,
+  Send,
+  MessageSquare,
+} from "lucide-react";
 
 const platforms = [
-  { Icon: MessageCircle, color: "#25D366", angle: -90, name: "WhatsApp", type: "chat", items: [
-    { who: "Amina K.", text: "Is the blue jacket still available?", time: "2m" },
-    { who: "Juma S.", text: "Can I pay on delivery?", time: "14m" },
-    { who: "Grace M.", text: "Thank you! Order received 🙏", time: "1h" },
-  ]},
-  { Icon: Camera, color: "#E1306C", angle: -30, name: "Instagram", type: "chat", items: [
-    { who: "@neema.designs", text: "Do you ship to Mwanza?", time: "5m" },
-    { who: "@collins_tz", text: "Price for the leather bag?", time: "22m" },
-    { who: "@fatuma.retail", text: "Following up on my order", time: "3h" },
-  ]},
-  { Icon: Mail, color: "#EA4335", angle: 30, name: "Email", type: "inbox", items: [
-    { who: "David Mwakalinga", subj: "Invoice request", time: "9:14" },
-    { who: "Sarah Kimaro", subj: "Bulk order enquiry", time: "8:02" },
-    { who: "Peter Nyerere", subj: "Refund status?", time: "Yesterday" },
-  ]},
-  { Icon: MessageSquare, color: "#0084FF", angle: 90, name: "Messenger", type: "chat", items: [
-    { who: "Happiness L.", text: "Still waiting for a reply", time: "1m" },
-    { who: "Baraka T.", text: "Do you have size 42?", time: "18m" },
-    { who: "Zainab R.", text: "Sent the payment ✅", time: "2h" },
-  ]},
-  { Icon: Phone, color: "#6B7A72", angle: 150, name: "Calls", type: "calls", items: [
-    { who: "+255 754 221 908", note: "Missed call", time: "10m" },
-    { who: "+255 682 004 511", note: "Missed call", time: "47m" },
-    { who: "+255 719 887 302", note: "Missed call", time: "3h" },
-  ]},
-  { Icon: Send, color: "#229ED9", angle: -150, name: "Telegram", type: "chat", items: [
-    { who: "Emmanuel J.", text: "Any discount for 5 pieces?", time: "6m" },
-    { who: "Rehema A.", text: "Is this original or copy?", time: "40m" },
-    { who: "Victor P.", text: "Order confirmed, thanks", time: "5h" },
-  ]},
+  {
+    Icon: MessageCircle,
+    color: "#25D366",
+    angle: -90,
+    name: "WhatsApp",
+    type: "chat",
+    items: [
+      { who: "Amina K.", text: "Is the blue jacket still available?", time: "2m" },
+      { who: "Juma S.", text: "Can I pay on delivery?", time: "14m" },
+      { who: "Grace M.", text: "Thank you! Order received 🙏", time: "1h" },
+    ],
+  },
+  {
+    Icon: Camera,
+    color: "#E1306C",
+    angle: -30,
+    name: "Instagram",
+    type: "chat",
+    items: [
+      { who: "@neema.designs", text: "Do you ship to Mwanza?", time: "5m" },
+      { who: "@collins_tz", text: "Price for the leather bag?", time: "22m" },
+      { who: "@fatuma.retail", text: "Following up on my order", time: "3h" },
+    ],
+  },
+  {
+    Icon: Mail,
+    color: "#EA4335",
+    angle: 30,
+    name: "Email",
+    type: "inbox",
+    items: [
+      { who: "David Mwakalinga", subj: "Invoice request", time: "9:14" },
+      { who: "Sarah Kimaro", subj: "Bulk order enquiry", time: "8:02" },
+      { who: "Peter Nyerere", subj: "Refund status?", time: "Yesterday" },
+    ],
+  },
+  {
+    Icon: MessageSquare,
+    color: "#0084FF",
+    angle: 90,
+    name: "Messenger",
+    type: "chat",
+    items: [
+      { who: "Happiness L.", text: "Still waiting for a reply", time: "1m" },
+      { who: "Baraka T.", text: "Do you have size 42?", time: "18m" },
+      { who: "Zainab R.", text: "Sent the payment ✅", time: "2h" },
+    ],
+  },
+  {
+    Icon: Phone,
+    color: "#6B7A72",
+    angle: 150,
+    name: "Calls",
+    type: "calls",
+    items: [
+      { who: "+255 754 221 908", note: "Missed call", time: "10m" },
+      { who: "+255 682 004 511", note: "Missed call", time: "47m" },
+      { who: "+255 719 887 302", note: "Missed call", time: "3h" },
+    ],
+  },
+  {
+    Icon: Send,
+    color: "#229ED9",
+    angle: -150,
+    name: "Telegram",
+    type: "chat",
+    items: [
+      { who: "Emmanuel J.", text: "Any discount for 5 pieces?", time: "6m" },
+      { who: "Rehema A.", text: "Is this original or copy?", time: "40m" },
+      { who: "Victor P.", text: "Order confirmed, thanks", time: "5h" },
+    ],
+  },
 ];
 
 function useHubSize() {
@@ -39,15 +88,26 @@ function useHubSize() {
 
   useEffect(() => {
     const updateSize = () => {
-      const w = window.innerWidth;
-      if (w < 360) setSize(245);
-      else if (w < 480) setSize(270);
-      else if (w < 768) setSize(340);
-      else setSize(420);
+      const width = window.innerWidth;
+
+      if (width < 360) {
+        setSize(245);
+      } else if (width < 480) {
+        setSize(270);
+      } else if (width < 768) {
+        setSize(340);
+      } else {
+        setSize(420);
+      }
     };
+
     updateSize();
+
     window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
+
+    return () => {
+      window.removeEventListener("resize", updateSize);
+    };
   }, []);
 
   return size;
@@ -56,74 +116,151 @@ function useHubSize() {
 function PlatformHub({ t, autoPlayTrigger = 0 }) {
   const SIZE = useHubSize();
   const CENTER = SIZE / 2;
+
   const RADIUS = SIZE * 0.357;
+
   const satelliteSize = SIZE < 300 ? 42 : 52;
   const satelliteHalf = satelliteSize / 2;
+
   const centerSize = SIZE < 300 ? 68 : 84;
 
   const [drawn, setDrawn] = useState(false);
   const [hovered, setHovered] = useState(null);
   const [centerHovered, setCenterHovered] = useState(false);
+
   const timersRef = useRef([]);
 
-  const positioned = platforms.map((p) => {
-    const rad = (p.angle * Math.PI) / 180;
+  const positioned = platforms.map((platform) => {
+    const rad = (platform.angle * Math.PI) / 180;
+
     const x = CENTER + RADIUS * Math.cos(rad);
     const y = CENTER + RADIUS * Math.sin(rad);
-    const midX = (CENTER + x) / 2 + (y - CENTER) * 0.15;
-    const midY = (CENTER + y) / 2 - (x - CENTER) * 0.15;
-    const popX = CENTER + (RADIUS + 110) * Math.cos(rad);
-    const popY = CENTER + (RADIUS + 75) * Math.sin(rad);
-    return { ...p, x, y, midX, midY, popX, popY };
+
+    const midX =
+      (CENTER + x) / 2 +
+      (y - CENTER) * 0.15;
+
+    const midY =
+      (CENTER + y) / 2 -
+      (x - CENTER) * 0.15;
+
+    const popX =
+      CENTER +
+      (RADIUS + 110) * Math.cos(rad);
+
+    const popY =
+      CENTER +
+      (RADIUS + 75) * Math.sin(rad);
+
+    return {
+      ...platform,
+      x,
+      y,
+      midX,
+      midY,
+      popX,
+      popY,
+    };
   });
 
   useEffect(() => {
     setDrawn(false);
-    const timer = setTimeout(() => setDrawn(true), 200);
-    return () => clearTimeout(timer);
+
+    const timer = setTimeout(() => {
+      setDrawn(true);
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+    };
   }, [t, SIZE]);
 
   useEffect(() => {
-    if (autoPlayTrigger === 0) return;
+    if (autoPlayTrigger === 0) {
+      return;
+    }
+
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+
     setHovered(null);
     setCenterHovered(false);
 
     const perSatellite = 1300;
-    platforms.forEach((_, i) => {
-      timersRef.current.push(setTimeout(() => setHovered(i), i * perSatellite));
+
+    platforms.forEach((_, index) => {
+      timersRef.current.push(
+        setTimeout(() => {
+          setHovered(index);
+        }, index * perSatellite)
+      );
     });
 
-    const afterSatellites = platforms.length * perSatellite;
-    timersRef.current.push(setTimeout(() => setHovered(null), afterSatellites));
-    timersRef.current.push(setTimeout(() => setCenterHovered(true), afterSatellites + 400));
-    timersRef.current.push(setTimeout(() => setCenterHovered(false), afterSatellites + 4000));
+    const afterSatellites =
+      platforms.length * perSatellite;
 
-    return () => timersRef.current.forEach(clearTimeout);
+    timersRef.current.push(
+      setTimeout(() => {
+        setHovered(null);
+      }, afterSatellites)
+    );
+
+    timersRef.current.push(
+      setTimeout(() => {
+        setCenterHovered(true);
+      }, afterSatellites + 400)
+    );
+
+    timersRef.current.push(
+      setTimeout(() => {
+        setCenterHovered(false);
+      }, afterSatellites + 4000)
+    );
+
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+    };
   }, [autoPlayTrigger]);
 
   return (
     <div
-      className="relative mx-auto"
-      style={{ width: SIZE, height: SIZE, maxWidth: "100%", touchAction: "manipulation" }}
+      className="relative mx-auto shrink-0"
+      style={{
+        width: SIZE,
+        height: SIZE,
+        maxWidth: "100%",
+        touchAction: "manipulation",
+      }}
     >
-      <svg width={SIZE} height={SIZE} className="absolute inset-0" aria-hidden="true">
-        {positioned.map((p, i) => (
+      {/* Connection lines */}
+      <svg
+        width={SIZE}
+        height={SIZE}
+        className="absolute inset-0"
+        aria-hidden="true"
+      >
+        {positioned.map((platform, index) => (
           <path
-            key={p.name}
-            d={`M ${CENTER} ${CENTER} Q ${p.midX} ${p.midY} ${p.x} ${p.y}`}
+            key={platform.name}
+            d={`M ${CENTER} ${CENTER} Q ${platform.midX} ${platform.midY} ${platform.x} ${platform.y}`}
             fill="none"
             stroke={t.accent}
             strokeWidth="2"
             strokeLinecap="round"
             strokeDasharray="300"
             strokeDashoffset={drawn ? 0 : 300}
-            style={{ transition: `stroke-dashoffset 0.9s ease-out ${i * 0.08}s`, opacity: 0.5 }}
+            style={{
+              transition: `stroke-dashoffset 0.9s ease-out ${
+                index * 0.08
+              }s`,
+              opacity: 0.5,
+            }}
           />
         ))}
       </svg>
 
+      {/* Center MtejaAI button */}
       <div
         className="absolute flex items-center justify-center rounded-2xl shadow-xl"
         onMouseEnter={() => setCenterHovered(true)}
@@ -134,19 +271,29 @@ function PlatformHub({ t, autoPlayTrigger = 0 }) {
           left: CENTER - centerSize / 2,
           top: CENTER - centerSize / 2,
           background: t.accent,
-          transform: centerHovered ? "scale(1.08)" : "scale(1)",
+          transform: centerHovered
+            ? "scale(1.08)"
+            : "scale(1)",
           transition: "transform 0.2s ease-out",
           zIndex: 25,
         }}
       >
-        <MessageCircle size={SIZE < 300 ? 30 : 36} color={t.accentText} strokeWidth={2.2} />
+        <MessageCircle
+          size={SIZE < 300 ? 30 : 36}
+          color={t.accentText}
+          strokeWidth={2.2}
+        />
       </div>
 
+      {/* Center popup */}
       {centerHovered && (
         <div
           className="absolute rounded-xl shadow-2xl overflow-hidden pointer-events-none"
           style={{
-            left: Math.max(4, Math.min(CENTER - 115, SIZE - 234)),
+            left: Math.max(
+              4,
+              Math.min(CENTER - 115, SIZE - 234)
+            ),
             top: Math.max(4, CENTER - 175),
             width: Math.min(230, SIZE - 8),
             maxWidth: "calc(100% - 8px)",
@@ -156,94 +303,223 @@ function PlatformHub({ t, autoPlayTrigger = 0 }) {
             animation: "popIn 0.15s ease-out",
           }}
         >
-          <div className="px-3.5 py-2.5 text-xs font-semibold flex items-center gap-2" style={{ background: t.accent, color: t.accentText }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: t.accentText }} />
+          <div
+            className="px-3.5 py-2.5 text-xs font-semibold flex items-center gap-2"
+            style={{
+              background: t.accent,
+              color: t.accentText,
+            }}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: t.accentText,
+              }}
+            />
+
             MtejaAI replying live
           </div>
+
           <div className="px-3.5 py-3 min-h-[120px] flex items-center">
-            <p className="text-[11px] leading-snug" style={{ color: t.muted }}>
-              Real customer messages will appear here after you connect a channel.
+            <p
+              className="text-[11px] leading-snug"
+              style={{
+                color: t.muted,
+              }}
+            >
+              Real customer messages will appear here after
+              you connect a channel.
             </p>
           </div>
         </div>
       )}
 
-      {positioned.map((p, i) => {
-        const { Icon } = p;
-        const isHovered = hovered === i;
+      {/* Satellite platforms */}
+      {positioned.map((platform, index) => {
+        const { Icon } = platform;
+
+        const isHovered = hovered === index;
 
         return (
-          <div key={p.name}>
+          <div key={platform.name}>
+            {/* Platform icon */}
             <div
               className="absolute flex items-center justify-center rounded-full shadow-lg float cursor-pointer"
-              onMouseEnter={() => setHovered(i)}
+              onMouseEnter={() => setHovered(index)}
               onMouseLeave={() => setHovered(null)}
               style={{
                 width: satelliteSize,
                 height: satelliteSize,
-                left: p.x - satelliteHalf,
-                top: p.y - satelliteHalf,
+                left: platform.x - satelliteHalf,
+                top: platform.y - satelliteHalf,
                 background: t.card,
-                border: isHovered ? `2px solid ${p.color}` : `1.5px solid ${p.color}40`,
-                boxShadow: isHovered ? "none" : `0 0 0 3px ${p.color}14`,
-                animationDelay: `${i * 0.3}s`,
-                animationPlayState: isHovered ? "paused" : "running",
+                border: isHovered
+                  ? `2px solid ${platform.color}`
+                  : `1.5px solid ${platform.color}40`,
+                boxShadow: isHovered
+                  ? "none"
+                  : `0 0 0 3px ${platform.color}14`,
+                animationDelay: `${index * 0.3}s`,
+                animationPlayState: isHovered
+                  ? "paused"
+                  : "running",
                 opacity: drawn ? 1 : 0,
-                transform: drawn ? (isHovered ? "scale(1.15)" : "scale(1)") : "scale(0.6)",
-                transition: "transform 0.2s ease-out, opacity 0.4s ease-out, border 0.15s, box-shadow 0.15s",
+                transform: drawn
+                  ? isHovered
+                    ? "scale(1.15)"
+                    : "scale(1)"
+                  : "scale(0.6)",
+                transition:
+                  "transform 0.2s ease-out, opacity 0.4s ease-out, border 0.15s, box-shadow 0.15s",
                 zIndex: isHovered ? 20 : 1,
               }}
             >
-              <Icon size={SIZE < 300 ? 18 : 22} color={p.color} strokeWidth={2} />
+              <Icon
+                size={SIZE < 300 ? 18 : 22}
+                color={platform.color}
+                strokeWidth={2}
+              />
+
               <span
                 className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full text-[9px] font-semibold text-white"
-                style={{ width: 17, height: 17, background: "#E5484D" }}
+                style={{
+                  width: 17,
+                  height: 17,
+                  background: "#E5484D",
+                }}
               >
-                {p.items.length}
+                {platform.items.length}
               </span>
             </div>
 
+            {/* Desktop/tablet popup */}
             {isHovered && (
               <div
                 className="hidden sm:block absolute rounded-xl shadow-2xl overflow-hidden pointer-events-none"
                 style={{
-                  left: Math.min(Math.max(p.popX - 100, 4), SIZE - 224),
-                  top: Math.min(Math.max(p.popY - 90, 4), SIZE - 4),
+                  left: Math.min(
+                    Math.max(platform.popX - 100, 4),
+                    SIZE - 224
+                  ),
+                  top: Math.min(
+                    Math.max(platform.popY - 90, 4),
+                    SIZE - 4
+                  ),
                   width: 220,
+                  maxWidth: "calc(100vw - 32px)",
                   background: t.card,
                   border: `1px solid ${t.border}`,
                   zIndex: 30,
                   animation: "popIn 0.15s ease-out",
                 }}
               >
-                <div className="px-3.5 py-2.5 text-xs font-semibold flex items-center gap-2" style={{ background: p.color, color: "#fff" }}>
-                  <Icon size={14} color="#fff" />{p.name}
+                <div
+                  className="px-3.5 py-2.5 text-xs font-semibold flex items-center gap-2"
+                  style={{
+                    background: platform.color,
+                    color: "#fff",
+                  }}
+                >
+                  <Icon
+                    size={14}
+                    color="#fff"
+                  />
+
+                  {platform.name}
                 </div>
+
                 <div>
-                  {p.items.map((item, idx) => (
-                    <div key={idx} className="px-3.5 py-2 flex items-center gap-2.5" style={{ borderBottom: idx < p.items.length - 1 ? `1px solid ${t.border}` : "none" }}>
-                      {p.type === "calls" ? (
+                  {platform.items.map((item, itemIndex) => (
+                    <div
+                      key={itemIndex}
+                      className="px-3.5 py-2 flex items-center gap-2.5"
+                      style={{
+                        borderBottom:
+                          itemIndex <
+                          platform.items.length - 1
+                            ? `1px solid ${t.border}`
+                            : "none",
+                      }}
+                    >
+                      {platform.type === "calls" ? (
                         <>
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: `${p.color}22` }}>
-                            <Phone size={13} color={p.color} />
+                          <div
+                            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                            style={{
+                              background: `${platform.color}22`,
+                            }}
+                          >
+                            <Phone
+                              size={13}
+                              color={platform.color}
+                            />
                           </div>
+
                           <div className="min-w-0 flex-1">
-                            <div className="text-[11px] font-medium truncate" style={{ color: t.text }}>{item.who}</div>
-                            <div className="text-[10px]" style={{ color: p.color }}>{item.note}</div>
+                            <div
+                              className="text-[11px] font-medium truncate"
+                              style={{
+                                color: t.text,
+                              }}
+                            >
+                              {item.who}
+                            </div>
+
+                            <div
+                              className="text-[10px]"
+                              style={{
+                                color: platform.color,
+                              }}
+                            >
+                              {item.note}
+                            </div>
                           </div>
                         </>
                       ) : (
                         <>
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[10px] font-semibold text-white" style={{ background: p.color }}>
+                          <div
+                            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[10px] font-semibold text-white"
+                            style={{
+                              background: platform.color,
+                            }}
+                          >
                             {item.who.charAt(0)}
                           </div>
+
                           <div className="min-w-0 flex-1">
-                            <div className="text-[11px] font-medium truncate" style={{ color: t.text }}>{item.who}</div>
-                            <div className="text-[10px] truncate" style={{ color: t.text, opacity: 0.6 }}>{p.type === "inbox" ? item.subj : item.text}</div>
+                            <div
+                              className="text-[11px] font-medium truncate"
+                              style={{
+                                color: t.text,
+                              }}
+                            >
+                              {item.who}
+                            </div>
+
+                            <div
+                              className="text-[10px] truncate"
+                              style={{
+                                color: t.text,
+                                opacity: 0.6,
+                              }}
+                            >
+                              {platform.type === "inbox"
+                                ? item.subj
+                                : item.text}
+                            </div>
                           </div>
                         </>
                       )}
-                      <div className="text-[9px] shrink-0" style={{ color: t.text, opacity: 0.4 }}>{item.time}</div>
+
+                      <div
+                        className="text-[9px] shrink-0"
+                        style={{
+                          color: t.text,
+                          opacity: 0.4,
+                        }}
+                      >
+                        {item.time}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -255,13 +531,29 @@ function PlatformHub({ t, autoPlayTrigger = 0 }) {
 
       <style>{`
         @keyframes floatY {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
+          0%, 100% {
+            transform: translateY(0);
+          }
+
+          50% {
+            transform: translateY(-6px);
+          }
         }
-        .float { animation: floatY 3s ease-in-out infinite; }
+
+        .float {
+          animation: floatY 3s ease-in-out infinite;
+        }
+
         @keyframes popIn {
-          from { opacity: 0; transform: scale(0.9); }
-          to { opacity: 1; transform: scale(1); }
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
         }
       `}</style>
     </div>
