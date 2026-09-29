@@ -34,10 +34,10 @@ function Footer({ t }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="px-6 pt-16 pb-8" style={{ borderTop: `1px solid ${t.border}` }}>
+    <footer className="px-4 sm:px-6 pt-10 sm:pt-16 pb-[calc(2rem+env(safe-area-inset-bottom))]" style={{ borderTop: `1px solid ${t.border}` }}>
       {}
       <ScrollReveal y={16}>
-        <div className="max-w-6xl mx-auto grid sm:grid-cols-4 gap-10">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-8 sm:gap-10">
           <div>
             <span className="text-lg font-semibold" style={{ color: t.text }}>
               Mteja<span style={{ color: t.accent }}>AI</span>
@@ -52,14 +52,14 @@ function Footer({ t }) {
               <div className="text-sm font-semibold mb-3" style={{ color: t.text }}>
                 {col.title}
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     {link.to.startsWith("/") ? (
                      
                       <Link
                         to={link.to}
-                        className="text-sm hover:opacity-70 transition-opacity"
+                        className="min-h-11 inline-flex items-center text-sm hover:opacity-70 transition-opacity"
                         style={{ color: t.muted }}
                       >
                         {link.label}
@@ -67,7 +67,7 @@ function Footer({ t }) {
                     ) : (
                       <a
                         href={link.to}
-                        className="text-sm hover:opacity-70 transition-opacity"
+                        className="min-h-11 inline-flex items-center text-sm hover:opacity-70 transition-opacity"
                         style={{ color: t.muted }}
                       >
                         {link.label}

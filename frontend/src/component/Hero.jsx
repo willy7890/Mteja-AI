@@ -16,11 +16,11 @@ function Hero({ t }) {
   const [secondaryHover, setSecondaryHover] = useState(false);
 
   return (
-    <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+    <section className="relative pt-20 sm:pt-28 pb-12 sm:pb-20 px-4 sm:px-6 overflow-hidden">
       {/* Headline block */}
       <div className="max-w-2xl mx-auto text-center relative z-10">
         <h1
-          className="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.1] headline-line"
+          className="text-3xl min-[380px]:text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.1] headline-line"
           style={{ color: t.text }}
         >
           One inbox for every message
@@ -34,10 +34,10 @@ function Hero({ t }) {
           MtejaAI reads WhatsApp, Instagram, email, and calls and replies
           before your customer looks elsewhere.
         </p>
-        <div className="mt-7 flex justify-center gap-3 headline-line" style={{ animationDelay: '0.45s' }}>
+        <div className="mt-7 flex flex-col min-[480px]:flex-row justify-center gap-3 headline-line" style={{ animationDelay: '0.45s' }}>
           <Link
             to="/signup"
-            className="px-6 py-3 rounded-full font-medium transition-transform hover:scale-[1.03]"
+            className="min-h-11 px-5 sm:px-6 py-3 rounded-full font-medium text-center"
             style={{ background: t.accent, color: t.accentText }}
           >
             Start free trial
@@ -46,7 +46,7 @@ function Hero({ t }) {
             onClick={() => setDemoTrigger((n) => n + 1)}
             onMouseEnter={() => setSecondaryHover(true)}
             onMouseLeave={() => setSecondaryHover(false)}
-            className="px-6 py-3 rounded-full font-medium transition-colors duration-150"
+            className="min-h-11 px-5 sm:px-6 py-3 rounded-full font-medium"
             style={{
               border: `1px solid ${t.border}`,
               color: t.text,

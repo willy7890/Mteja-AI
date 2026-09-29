@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr, Field
 class RegisterRequest(BaseModel):
     email: EmailStr
     full_name: str = Field(..., min_length=2, max_length=255)
-    password: str = Field(..., min_length=6)
+    password: str = Field(..., min_length=8)
     organization_name: str = Field(..., min_length=2, max_length=255)
 
 
@@ -20,6 +20,23 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class EmailCodeRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class EmailRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetRequest(EmailCodeRequest):
+    new_password: str = Field(..., min_length=8)
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
@@ -29,6 +46,7 @@ class UserResponse(BaseModel):
     is_active: bool
     is_superuser: bool
     is_verified: bool
+    email_verified: bool = True
     avatar_url: str | None = None
     trial_started_at: datetime | None = None
     trial_ends_at: datetime | None = None

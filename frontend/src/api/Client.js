@@ -1,11 +1,11 @@
 const configuredBaseUrl =
   import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
 const deployedBaseUrl = 'https://mteja-ai-upyg.onrender.com';
-const BASE_URL = (
+export const API_BASE_URL = (
   configuredBaseUrl ||
-  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
     ? deployedBaseUrl
-    : 'http://127.0.0.1:8000')
+    : 'http://localhost:8000')
 ).replace(/\/$/, '');
 
 class ApiError extends Error {
@@ -14,6 +14,7 @@ class ApiError extends Error {
     this.name = 'ApiError';
     this.status = status;
     this.data = data;
+    this.code = data?.code;
   }
 }
 
@@ -66,7 +67,7 @@ async function handleResponse(res) {
 }
 
 export async function apiPost(path, body) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -84,7 +85,7 @@ export async function apiPostForm(path, fields) {
     body.append(key, value);
   });
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -96,7 +97,7 @@ export async function apiPostForm(path, fields) {
 }
 
 export async function apiGet(path) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'GET',
     headers: {
       ...authHeader(),
@@ -107,7 +108,7 @@ export async function apiGet(path) {
 }
 
 export async function apiAuthPost(path, body) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ export async function apiAuthPost(path, body) {
 }
 
 export async function apiAuthPatch(path, body) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -145,7 +146,7 @@ export async function apiAuthUpload(
     body.append(key, String(value));
   });
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       ...authHeader(),
@@ -163,7 +164,7 @@ export function apiAssetUrl(path) {
     return path;
   }
 
-  return `${BASE_URL}${
+  return `${API_BASE_URL}${
     path.startsWith('/') ? path : `/${path}`
   }`;
 }

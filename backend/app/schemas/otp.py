@@ -12,6 +12,9 @@ class OTPPurpose(str, Enum):
     REGISTRATION = "registration"
     LOGIN = "login"
     RESET_PASSWORD = "reset_password"
+    EMAIL_VERIFICATION = "email_verification"
+    PASSWORD_RESET = "password_reset"
+    SENSITIVE_ACTION = "sensitive_action"
 
 
 class SendOTPRequest(BaseModel):

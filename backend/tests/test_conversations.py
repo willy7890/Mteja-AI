@@ -1,13 +1,24 @@
 import pytest
+from sqlalchemy import select
+from app.models.user import User
+from app.services.email_service import EmailService
 
 @pytest.mark.asyncio
-async def test_conversations_flow_and_isolation(client):
+async def test_conversations_flow_and_isolation(client, db_session, monkeypatch):
+    async def delivered(**kwargs):
+        return True
+
+    monkeypatch.setattr(EmailService, "send_otp_email", delivered)
     await client.post("/api/v1/auth/register", json={
         "email": "agent1@mteja.ai",
         "full_name": "Agent One",
         "password": "Password123",
         "organization_name": "Support Org"
     })
+    users = (await db_session.execute(select(User))).scalars().all()
+    for user in users:
+        user.email_verified = True
+    await db_session.commit()
     login_a = await client.post("/api/v1/auth/login", data={
         "username": "agent1@mteja.ai",
         "password": "Password123"
@@ -47,6 +58,10 @@ async def test_conversations_flow_and_isolation(client):
         "password": "Password123",
         "organization_name": "Other Org"
     })
+    users = (await db_session.execute(select(User))).scalars().all()
+    for user in users:
+        user.email_verified = True
+    await db_session.commit()
     login_b = await client.post("/api/v1/auth/login", data={
         "username": "agent2@otherorg.ai",
         "password": "Password123"

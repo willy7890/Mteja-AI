@@ -5,7 +5,7 @@ import Footer from './Footer';
 function PublicLayout({ t, dark, setDark }) {
   return (
     <div
-      className="min-h-screen transition-colors duration-300"
+      className="min-h-[100dvh] transition-colors duration-300 overflow-x-clip"
       style={{
         backgroundColor: t.bg,
         backgroundImage: dark ? `${t.bgPattern}, ${t.bgGradient}` : `${t.bgPattern}`,
