@@ -1,21 +1,18 @@
 from datetime import datetime, timedelta, timezone
-import random
+import hmac
+import logging
+import secrets
 import string
 
 from fastapi import HTTPException, status
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.otp import OTPChannel, OTPCode, OTPPurpose
+from app.services.email_service import EmailService
 
-# Dynamic imports for services
-try:
-    from app.integrations.email.service import EmailService
-except ImportError:
-    try:
-        from app.services.email_service import EmailService
-    except ImportError:
-        EmailService = None
+logger = logging.getLogger(__name__)
 
 try:
     from app.services.sms_service import SMSService
@@ -27,7 +24,7 @@ class OTPService:
 
     @staticmethod
     def generate_otp(length: int = 6) -> str:
-        return "".join(random.choices(string.digits, k=length))
+        return "".join(secrets.choice(string.digits) for _ in range(length))
 
     @staticmethod
     async def create_otp(
@@ -76,28 +73,28 @@ class OTPService:
 
         # Send via Email
         if channel == OTPChannel.EMAIL and email:
-            print(f"Trying to send email to {email} with OTP {otp.code}")
-            if EmailService and hasattr(EmailService, "send_otp_email"):
-                success = await EmailService.send_otp_email(
-                    to=email, otp_code=otp.code, purpose=purpose.value
+            if settings.ENVIRONMENT.lower() == "local":
+                logger.info("Local OTP generated: email=%s purpose=%s code=%s", email, purpose.value, otp.code)
+            success = await EmailService.send_otp_email(
+                to=email, otp_code=otp.code, purpose=purpose.value
+            )
+            if not success:
+                otp.is_used = True
+                await db.commit()
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="OTP email could not be delivered. Please try again later.",
                 )
-                print(f"Email send result: {success}")
-                if not success:
-                    otp.is_used = True
-                    await db.commit()
-                    raise HTTPException(
-                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                        detail="OTP email could not be delivered. Please try again later.",
-                    )
 
         # Send via SMS
         elif channel == OTPChannel.SMS and phone:
-            print(f"Trying to send SMS to {phone} with OTP {otp.code}")
+            if settings.ENVIRONMENT.lower() == "local":
+                logger.info("Local OTP generated: phone=%s purpose=%s code=%s", phone, purpose.value, otp.code)
             if SMSService and hasattr(SMSService, "send_otp_sms"):
                 success = await SMSService.send_otp_sms(
                     to=phone, otp_code=otp.code, purpose=purpose.value
                 )
-                print(f"SMS send result: {success}")
+                logger.info("OTP SMS delivery result: success=%s", bool(success))
 
         return otp
 
@@ -111,7 +108,6 @@ class OTPService:
     ) -> OTPCode:
         query = select(OTPCode).where(
             and_(
-                OTPCode.code == code,
                 OTPCode.purpose == purpose,
                 OTPCode.is_used == False,
             )
@@ -121,6 +117,7 @@ class OTPService:
         if phone:
             query = query.where(OTPCode.phone == phone)
 
+        query = query.order_by(OTPCode.created_at.desc(), OTPCode.id.desc()).limit(1)
         result = await db.execute(query)
         otp = result.scalar_one_or_none()
 
@@ -144,7 +141,7 @@ class OTPService:
 
         otp.attempts += 1
 
-        if otp.code != code:
+        if not hmac.compare_digest(otp.code, code):
             await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

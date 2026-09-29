@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -62,21 +62,38 @@ def create_google_oauth_state(redirect_to: Optional[str] = None) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
-def validate_google_oauth_state(token: str, cookie_state: Optional[str] = None) -> bool:
-    """JWT must be valid and the browser must present the exact matching state cookie."""
-    if not token or not cookie_state:
-        return False
-
+def google_oauth_state_failure(
+    token: Optional[str], cookie_state: Optional[str] = None
+) -> Optional[str]:
+    """Return a safe diagnostic reason, or None when state and cookie are valid."""
+    if not token:
+        return "state_missing"
+    if not cookie_state:
+        return "cookie_missing"
     if not secrets.compare_digest(token, cookie_state):
-        return False
+        return "cookie_mismatch"
 
-    payload = decode_token(token)
-    return bool(
-        payload
-        and payload.get("sub") == "google-oauth"
-        and payload.get("type") == "google_oauth_state"
-        and isinstance(payload.get("nonce"), str)
-    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+    except ExpiredSignatureError:
+        return "expired"
+    except JWTError as error:
+        if "signature" in str(error).lower():
+            return "bad_signature"
+        return "invalid_jwt"
+
+    if payload.get("type") != "google_oauth_state":
+        return "wrong_type"
+    if payload.get("sub") != "google-oauth":
+        return "wrong_subject"
+    if not isinstance(payload.get("nonce"), str) or not payload["nonce"]:
+        return "invalid_nonce"
+    return None
+
+
+def validate_google_oauth_state(token: str, cookie_state: Optional[str] = None) -> bool:
+    """Require a valid signed state JWT and the exact matching browser cookie."""
+    return google_oauth_state_failure(token, cookie_state) is None
 
 
 async def get_current_user(
@@ -102,11 +119,10 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
-    if (
-        not user.is_superuser
-        and user.trial_ends_at
-        and user.trial_ends_at <= datetime.now(timezone.utc)
-    ):
+    trial_ends_at = user.trial_ends_at
+    if trial_ends_at is not None and trial_ends_at.tzinfo is None:
+        trial_ends_at = trial_ends_at.replace(tzinfo=timezone.utc)
+    if not user.is_superuser and trial_ends_at and trial_ends_at <= datetime.now(timezone.utc):
         raise HTTPException(status_code=403, detail="Your 14-day free trial has ended")
 
     return user

@@ -243,15 +243,37 @@ app = FastAPI(
 # CORS
 # ============================================================
 
+DEFAULT_FRONTEND_URL = "https://mtejaai.signiai.co.tz"
+
+
+def build_cors_origins() -> list[str]:
+    """
+    Combine origins from the CORS_ORIGINS env var with the
+    frontend URL and local development URLs, without duplicates.
+    """
+
+    origins = {
+        origin.strip().rstrip("/")
+        for origin in (getattr(settings, "CORS_ORIGINS", "") or "").split(",")
+        if origin.strip()
+    }
+
+    frontend_url = (
+        getattr(settings, "FRONTEND_URL", "") or DEFAULT_FRONTEND_URL
+    ).rstrip("/")
+
+    origins.add(frontend_url)
+    origins.add(DEFAULT_FRONTEND_URL)
+    origins.add("http://localhost:5173")
+
+    return sorted(origins)
+
+
 app.add_middleware(
 
     CORSMiddleware,
 
-    allow_origins=[
-        origin.strip()
-        for origin in settings.CORS_ORIGINS.split(",")
-        if origin.strip()
-    ],
+    allow_origins=build_cors_origins(),
 
     allow_credentials=True,
 
@@ -316,10 +338,6 @@ async def root():
     }
 
 
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
 @app.get(
     "/health",
     tags=["Health"]
@@ -331,10 +349,6 @@ async def health():
     }
 
 
-# ============================================================
-# ML INTENT PREDICTION
-# ============================================================
-
 @app.post(
     "/predict",
     response_model=PredictionResponse,
@@ -343,10 +357,6 @@ async def health():
 async def predict_intent(
     payload: QueryRequest
 ):
-
-    # --------------------------------------------------------
-    # CHECK IF MODEL IS READY
-    # --------------------------------------------------------
 
     if (
         model_vectorizer is None
@@ -358,10 +368,6 @@ async def predict_intent(
             status_code=503,
             detail="Intent classification model is not loaded."
         )
-
-    # --------------------------------------------------------
-    # CLEAN QUESTION
-    # --------------------------------------------------------
 
     clean_query = (
         payload.question
@@ -376,28 +382,16 @@ async def predict_intent(
             detail="Question payload cannot be empty."
         )
 
-    # --------------------------------------------------------
-    # VECTORIZE QUESTION
-    # --------------------------------------------------------
-
     query_vector = (
         model_vectorizer.transform(
             [clean_query]
         )
     )
 
-    # --------------------------------------------------------
-    # CALCULATE SIMILARITY
-    # --------------------------------------------------------
-
     similarities = cosine_similarity(
         query_vector,
         model_X_vectors
     )[0]
-
-    # --------------------------------------------------------
-    # FIND BEST MATCH
-    # --------------------------------------------------------
 
     best_idx = int(
         np.argmax(similarities)
@@ -406,16 +400,7 @@ async def predict_intent(
     confidence_score = (
         float(similarities[best_idx]) * 100
     )
-
-    # --------------------------------------------------------
-    # CONFIDENCE THRESHOLD
-    # --------------------------------------------------------
-
     CONFIDENCE_THRESHOLD = 15.0
-
-    # --------------------------------------------------------
-    # MATCH FOUND
-    # --------------------------------------------------------
 
     if confidence_score >= CONFIDENCE_THRESHOLD:
 
@@ -433,10 +418,6 @@ async def predict_intent(
             status="success",
         )
 
-    # --------------------------------------------------------
-    # FALLBACK
-    # --------------------------------------------------------
-
     return PredictionResponse(
 
         matched_answer=(
@@ -452,10 +433,6 @@ async def predict_intent(
         status="fallback",
     )
 
-
-# ============================================================
-# STATIC FILES
-# ============================================================
 
 STATIC_DIR.mkdir(
     parents=True,
