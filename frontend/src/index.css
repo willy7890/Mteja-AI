@@ -1,59 +1,100 @@
-
 @import "tailwindcss";
 
 :root {
   font-family: "Manrope", sans-serif;
 }
 
+html {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
 body {
   font-family: "Manrope", sans-serif;
   margin: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   background: #F3F1EA;
   color: #14201A;
   transition: background-color 180ms ease, color 180ms ease;
+  overflow-x: hidden;
 }
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-img,
-svg,
-video,
-canvas {
+img, svg, video, canvas {
   max-width: 100%;
 }
 
-button,
-input,
-select,
-textarea {
+button, input, select, textarea {
   max-width: 100%;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 767px) {
-  body {
+  html, body, #root {
+    width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
   }
 
-  .p-6 {
-    padding: 1rem !important;
+  body {
+    -webkit-text-size-adjust: 100%;
   }
 
-  .p-8 {
-    padding: 1rem !important;
+  main {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
-  .px-6 {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+  /* Prevent long content, URLs and labels from creating horizontal scroll. */
+  h1, h2, h3, h4, h5, h6, p, span, a, button, label, td, th {
+    overflow-wrap: anywhere;
   }
 
-  .px-8 {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+  table {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Native horizontal scrolling for genuinely tabular data. */
+  .overflow-x-auto {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Keep common fixed-width popovers inside a phone viewport. */
+  [class*="w-72"], [class*="w-80"], [class*="w-96"] {
+    max-width: calc(100vw - 2rem);
+  }
+
+  input, select, textarea {
+    min-width: 0;
+  }
+
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Better touch targets without changing desktop layout. */
+  button {
+    touch-action: manipulation;
+  }
+
+  /* Avoid fixed desktop heights on content areas. */
+  .min-h-screen {
+    min-height: 100dvh;
   }
 }
 
@@ -91,6 +132,15 @@ html[data-theme='dark'] textarea {
   color: #F2F0E8 !important;
   border-color: rgba(242, 240, 232, 0.16) !important;
 }
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+@media (max-width: 767px) {
+  /* Existing spacing utilities are tightened on small screens. */
+  .p-6, .p-8 {
+    padding: 1rem !important;
+  }
+
+  .px-6, .px-8 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
