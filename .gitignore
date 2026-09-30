@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+.env
+.env.local
+*.env
+.venv/
+venv/
+app/notebook/
