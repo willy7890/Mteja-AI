@@ -39,6 +39,12 @@ from app.services.knowledge_service import kb_service
 
 from app.integrations.telegram.webhook import router as telegram_webhook_router
 from app.routes.telegram import router as telegram_ws_router
+from app.api.subscriptions import router as subscriptions_router
+from app.api.user_subscription import router as user_subscription_router
+from app.api.billing import router as billing_router
+from app.api.invoice import router as invoice_router
+from app.api.payments import router as payments_router
+from app.api.payments_status import router as status_router
 
 
 # ============================================================
@@ -320,6 +326,14 @@ app.include_router(
 app.include_router(
     webhook_router
 )
+
+app.include_router(subscriptions_router)
+app.include_router(user_subscription_router)
+app.include_router(payments_router)
+app.include_router(status_router)
+app.include_router(invoice_router)
+app.include_router(billing_router)
+
 
 
 # ============================================================

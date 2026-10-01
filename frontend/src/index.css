@@ -7,9 +7,7 @@
 html {
   width: 100%;
   min-height: 100%;
-  /* "clip" (not "hidden") so position: sticky headers keep working */
-  overflow-x: clip;
-  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -21,46 +19,36 @@ body {
   background: #F3F1EA;
   color: #14201A;
   transition: background-color 180ms ease, color 180ms ease;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-img,
-svg,
-video,
-canvas {
+img, svg, video, canvas {
   max-width: 100%;
 }
 
-button,
-input,
-select,
-textarea {
+button, input, select, textarea {
   max-width: 100%;
 }
 
 #root {
   min-height: 100vh;
-  min-height: 100dvh;
   width: 100%;
   min-width: 0;
 }
 
-/* ================================
-   MOBILE BASE (phones < 768px)
-================================ */
-
 @media (max-width: 767px) {
-  html,
-  body,
-  #root {
+  html, body, #root {
     width: 100%;
     max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    -webkit-text-size-adjust: 100%;
   }
 
   main {
@@ -69,31 +57,9 @@ textarea {
     max-width: 100%;
   }
 
-  /*
-   * Only wrap long plain text. Do NOT use "anywhere" on span/button/label:
-   * it lets flex items shrink to 1 letter and stacks text vertically.
-   */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  p,
-  td,
-  th {
-    overflow-wrap: break-word;
-  }
-
-  a {
-    overflow-wrap: break-word;
-  }
-
-  button,
-  label,
-  span {
-    overflow-wrap: normal;
-    word-break: normal;
+  /* Prevent long content, URLs and labels from creating horizontal scroll. */
+  h1, h2, h3, h4, h5, h6, p, span, a, button, label, td, th {
+    overflow-wrap: anywhere;
   }
 
   table {
@@ -101,133 +67,80 @@ textarea {
     max-width: 100%;
   }
 
+  /* Native horizontal scrolling for genuinely tabular data. */
   .overflow-x-auto {
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Keep wide modals/cards inside the phone viewport */
-  [class*="w-72"],
-  [class*="w-80"],
-  [class*="w-96"] {
+  /* Keep common fixed-width popovers inside a phone viewport. */
+  [class*="w-72"], [class*="w-80"], [class*="w-96"] {
     max-width: calc(100vw - 2rem);
   }
 
-  /* 16px inputs stop iOS Safari from zooming in on focus */
-  input,
-  select,
-  textarea {
+  input, select, textarea {
     min-width: 0;
-    font-size: 16px;
   }
 
-  button,
-  a {
+  button, a {
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Better touch targets without changing desktop layout. */
   button {
     touch-action: manipulation;
   }
 
+  /* Avoid fixed desktop heights on content areas. */
   .min-h-screen {
     min-height: 100dvh;
   }
-
-  /* Smaller desktop padding on phones */
-  .p-6,
-  .p-8 {
-    padding: 1rem !important;
-  }
-
-  .px-6,
-  .px-8 {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-  }
 }
 
-/* ================================
-   DASHBOARD SIDEBAR / MOBILE MENU
-   Used by DashboardLayout.jsx
-================================ */
-
-/* Desktop and tablet: sidebar stays in the normal flow, full height */
-@media (min-width: 768px) {
-  .desktop-sidebar > * {
-    position: sticky !important;
-    top: 0 !important;
-    height: 100dvh !important;
-    overflow-y: auto;
-  }
-}
-
-/* Phone: the sidebar becomes a full-screen menu */
-.mobile-menu-panel > * {
-  position: static !important;
-  inset: auto !important;
-  transform: none !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  min-height: 100% !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  padding-left: 1rem !important;
-  padding-right: 1rem !important;
-}
-
-.mobile-menu-panel a,
-.mobile-menu-panel button {
-  min-height: 48px;
-  font-size: 1rem;
-}
-
-/* Safe areas for notches and gesture bars */
-.safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
-}
-
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* ================================
-   DARK MODE
-================================ */
-
-html[data-theme="dark"] body {
+html[data-theme='dark'] body {
   background: #0B1220;
   color: #F2F0E8;
 }
 
-html[data-theme="dark"] .bg-white,
-html[data-theme="dark"] [class*="bg-[#FFFFFF]"] {
+html[data-theme='dark'] .bg-white,
+html[data-theme='dark'] [class*="bg-[#FFFFFF]"] {
   background-color: #141E2B !important;
 }
 
-html[data-theme="dark"] [class*="bg-[#F7F6F1]"] {
+html[data-theme='dark'] [class*="bg-[#F7F6F1]"] {
   background-color: #1B2836 !important;
 }
 
-html[data-theme="dark"] [class*="text-[#10231C]"],
-html[data-theme="dark"] [class*="text-[#14201B]"] {
+html[data-theme='dark'] [class*="text-[#10231C]"],
+html[data-theme='dark'] [class*="text-[#14201B]"] {
   color: #F2F0E8 !important;
 }
 
-html[data-theme="dark"] [class*="text-[#68756F]"] {
+html[data-theme='dark'] [class*="text-[#68756F]"] {
   color: #93A3AC !important;
 }
 
-html[data-theme="dark"] [class*="border-[#E2E4DF]"] {
+html[data-theme='dark'] [class*="border-[#E2E4DF]"] {
   border-color: rgba(242, 240, 232, 0.12) !important;
 }
 
-html[data-theme="dark"] input,
-html[data-theme="dark"] select,
-html[data-theme="dark"] textarea {
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
   background-color: #1B2836 !important;
   color: #F2F0E8 !important;
   border-color: rgba(242, 240, 232, 0.16) !important;
+}
+
+@media (max-width: 767px) {
+  /* Existing spacing utilities are tightened on small screens. */
+  .p-6, .p-8 {
+    padding: 1rem !important;
+  }
+
+  .px-6, .px-8 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
 }
