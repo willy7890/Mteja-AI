@@ -109,11 +109,11 @@ class SubscriptionService:
                 detail="You already have an active subscription. Please change plan instead.",
             )
 
-        # 3. Weka tarehe
+        
         now = datetime.now(timezone.utc)
         if plan.billing_interval == "monthly":
             end_date = now + timedelta(days=30)
-        else:  # yearly
+        else: 
             end_date = now + timedelta(days=365)
 
         subscription = UserSubscription(
