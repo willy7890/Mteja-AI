@@ -9,6 +9,7 @@ from fastapi import HTTPException, status
 
 from app.models.payment import Payment
 from app.models.user_subscription import UserSubscription
+from app.services.billing_service import BillingService
 from app.schemas.payment import PaymentCreate, PaymentStatusUpdate, PaymentWebhookPayload
 
 
@@ -45,9 +46,7 @@ class PaymentService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Subscription not found",
-            )
-
-        
+            )      
         
         transaction_reference = f"PAY-{uuid.uuid4().hex[:16].upper()}"
 
@@ -137,10 +136,7 @@ class PaymentService:
         payment = await PaymentService.get_payment(db, payment_id, user_id)
 
         if data.status not in ALLOWED_STATUSES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status. Allowed: {', '.join(ALLOWED_STATUSES)}",
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=f"Invalid status. Allowed: {', '.join(ALLOWED_STATUSES)}")
 
         
         allowed = VALID_TRANSITIONS.get(payment.status, set())
@@ -154,13 +150,10 @@ class PaymentService:
 
         if data.provider_reference:
             payment.provider_reference = data.provider_reference
-
         if data.notes:
             payment.notes = data.notes
-
         if data.status == "successful":
             payment.paid_at = datetime.now(timezone.utc)
-            # Activate subscription
             await PaymentService._activate_subscription(db, payment.subscription_id)
 
         await db.commit()
@@ -208,6 +201,8 @@ class PaymentService:
         if payload.status == "successful":
             payment.paid_at = datetime.now(timezone.utc)
             await PaymentService._activate_subscription(db, payment.subscription_id)
+    # Create Billing Record + Invoice
+            await BillingService.create_billing_and_invoice(db, payment)
 
         await db.commit()
         await db.refresh(payment)

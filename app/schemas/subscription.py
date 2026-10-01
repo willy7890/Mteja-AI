@@ -16,8 +16,14 @@ class SubscriptionPlanBase(BaseModel):
     is_active: bool = True
 
 
-class SubscriptionPlanCreate(SubscriptionPlanBase):
-    pass
+class SubscriptionPlanCreate(BaseModel):
+        name: str = Field(..., min_length=2, max_length=100)
+        description: Optional[str] = None
+        price: Decimal = Field(..., ge=0)
+        currency: str = Field(default="TZS", max_length=10)
+        billing_interval: str = Field(..., pattern="^(monthly|yearly)$")
+        features: Optional[str] = None
+        is_active: bool = True
 
 
 class SubscriptionPlanUpdate(BaseModel):
