@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, validates
+from sqlalchemy import String, Text, DateTime, ForeignKey, Integer, Boolean
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -10,16 +10,24 @@ class TrainingData(Base):
     __tablename__ = "training_data"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    question: Mapped[str] = mapped_column(Text, nullable=False)
-    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    answer: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
-    )
+    
+    # Context or category (e.g., 'customer_support', 'faqs', 'product_inquiry')
+    intent: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    
+    # Input data / prompt provided by user or dataset
+    prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    
+    # Expected completion / response
+    completion: Mapped[str] = mapped_column(Text, nullable=False)
+    
+    # Quality score or status (e.g., 'approved', 'pending', 'rejected')
+    status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
+    
+    # Optional foreign key if associated with a specific tenant or user
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    @validates("question")
-    def validate_question(self, key, question: str) -> str:
-        if not question or not question.strip():
-            raise ValueError("Question cannot be empty")
-        return question.strip()
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships (uncomment if User model exists and needed)
+    # user = relationship("User", back_populates="training_data")
