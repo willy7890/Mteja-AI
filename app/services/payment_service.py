@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
-from decimal import Decimal
 
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +8,6 @@ from fastapi import HTTPException, status
 
 from app.models.payment import Payment
 from app.models.user_subscription import UserSubscription
-from app.services.billing_service import BillingService
 from app.schemas.payment import PaymentCreate, PaymentStatusUpdate, PaymentWebhookPayload
 
 
@@ -17,9 +15,9 @@ ALLOWED_STATUSES = {"pending", "successful", "failed", "cancelled"}
 
 VALID_TRANSITIONS = {
     "pending": {"successful", "failed", "cancelled"},
-    "successful": set(),      
-    "failed": set(),          
-    "cancelled": set(),       
+    "successful": set(),
+    "failed": set(),
+    "cancelled": set(),
 }
 
 
@@ -31,8 +29,7 @@ class PaymentService:
         user_id: int,
         organization_id: int,
         data: PaymentCreate,
-    ):
-        
+    ) -> Payment:
         result = await db.execute(
             select(UserSubscription).where(
                 and_(
@@ -46,8 +43,8 @@ class PaymentService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Subscription not found",
-            )      
-        
+            )
+
         transaction_reference = f"PAY-{uuid.uuid4().hex[:16].upper()}"
 
         payment = Payment(
@@ -66,15 +63,12 @@ class PaymentService:
         await db.refresh(payment)
         return payment
 
-
-
     @staticmethod
     async def get_payment(
         db: AsyncSession,
         payment_id: int,
         user_id: int,
-    ):
-        
+    ) -> Payment:
         result = await db.execute(
             select(Payment).where(
                 and_(
@@ -124,21 +118,21 @@ class PaymentService:
         )
         return list(result.scalars().all())
 
-
-
     @staticmethod
     async def update_status(
         db: AsyncSession,
         payment_id: int,
         user_id: int,
         data: PaymentStatusUpdate,
-    ):
+    ) -> Payment:
         payment = await PaymentService.get_payment(db, payment_id, user_id)
 
         if data.status not in ALLOWED_STATUSES:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=f"Invalid status. Allowed: {', '.join(ALLOWED_STATUSES)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status. Allowed: {', '.join(ALLOWED_STATUSES)}",
+            )
 
-        
         allowed = VALID_TRANSITIONS.get(payment.status, set())
         if data.status not in allowed:
             raise HTTPException(
@@ -152,22 +146,26 @@ class PaymentService:
             payment.provider_reference = data.provider_reference
         if data.notes:
             payment.notes = data.notes
+
         if data.status == "successful":
             payment.paid_at = datetime.now(timezone.utc)
             await PaymentService._activate_subscription(db, payment.subscription_id)
+
+            from app.services.billing_service import BillingService
+            from app.services.subscription_lifecycle_service import SubscriptionLifecycleService
+
+            await BillingService.create_billing_and_invoice(db, payment)
+            await SubscriptionLifecycleService.complete_renewal_after_payment(db, payment)
 
         await db.commit()
         await db.refresh(payment)
         return payment
 
-
-
     @staticmethod
     async def handle_webhook(
         db: AsyncSession,
         payload: PaymentWebhookPayload,
-    ):
-        
+    ) -> Payment:
         result = await db.execute(
             select(Payment).where(
                 Payment.transaction_reference == payload.transaction_reference
@@ -183,7 +181,6 @@ class PaymentService:
         if payment.status in ("successful", "failed", "cancelled"):
             return payment
 
-       
         if payload.status not in ("successful", "failed", "cancelled"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -194,28 +191,28 @@ class PaymentService:
 
         if payload.provider_reference:
             payment.provider_reference = payload.provider_reference
-
         if payload.message:
             payment.notes = payload.message
 
         if payload.status == "successful":
             payment.paid_at = datetime.now(timezone.utc)
             await PaymentService._activate_subscription(db, payment.subscription_id)
-    # Create Billing Record + Invoice
+
+            from app.services.billing_service import BillingService
+            from app.services.subscription_lifecycle_service import SubscriptionLifecycleService
+
             await BillingService.create_billing_and_invoice(db, payment)
+            await SubscriptionLifecycleService.complete_renewal_after_payment(db, payment)
 
         await db.commit()
         await db.refresh(payment)
         return payment
 
-
-
     @staticmethod
     async def _activate_subscription(
         db: AsyncSession,
         subscription_id: int,
-    ):
-        
+    ) -> None:
         result = await db.execute(
             select(UserSubscription).where(UserSubscription.id == subscription_id)
         )
@@ -224,5 +221,4 @@ class PaymentService:
             subscription.status = "active"
             if not subscription.start_date:
                 subscription.start_date = datetime.now(timezone.utc)
-          
             await db.commit()
