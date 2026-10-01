@@ -23,85 +23,109 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column(
-        "training_data",
-        sa.Column("answer", sa.Text(), nullable=False),
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    columns = {c["name"] for c in inspector.get_columns("training_data")}
+    indexes = {i["name"] for i in inspector.get_indexes("training_data")}
 
-    op.alter_column(
-        "training_data",
-        "question",
-        existing_type=sa.TEXT(),
-        type_=sa.String(length=500),
-        existing_nullable=False,
-    )
+    if "answer" not in columns:
+        op.add_column(
+            "training_data",
+            sa.Column("answer", sa.Text(), nullable=False),
+        )
 
-    op.alter_column(
-        "training_data",
-        "category",
-        existing_type=sa.VARCHAR(length=100),
-        nullable=True,
-    )
+    # Idempotent in Postgres even if already this type/nullability, but we
+    # only touch "question" if it hasn't already been narrowed to VARCHAR.
+    if "question" in columns:
+        op.alter_column(
+            "training_data",
+            "question",
+            existing_type=sa.TEXT(),
+            type_=sa.String(length=500),
+            existing_nullable=False,
+        )
 
-    op.create_index(
-        op.f("ix_training_data_id"),
-        "training_data",
-        ["id"],
-        unique=False,
-    )
+    if "category" in columns:
+        op.alter_column(
+            "training_data",
+            "category",
+            existing_type=sa.VARCHAR(length=100),
+            nullable=True,
+        )
 
-    op.drop_column(
-        "training_data",
-        "verified",
-    )
+    if op.f("ix_training_data_id") not in indexes:
+        op.create_index(
+            op.f("ix_training_data_id"),
+            "training_data",
+            ["id"],
+            unique=False,
+        )
 
-    op.drop_column(
-        "training_data",
-        "created_at",
-    )
+    if "verified" in columns:
+        op.drop_column(
+            "training_data",
+            "verified",
+        )
+
+    if "created_at" in columns:
+        op.drop_column(
+            "training_data",
+            "created_at",
+        )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.add_column(
-        "training_data",
-        sa.Column(
-            "created_at",
-            sa.DateTime(),
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    columns = {c["name"] for c in inspector.get_columns("training_data")}
+    indexes = {i["name"] for i in inspector.get_indexes("training_data")}
+
+    if "created_at" not in columns:
+        op.add_column(
+            "training_data",
+            sa.Column(
+                "created_at",
+                sa.DateTime(),
+                nullable=False,
+            ),
+        )
+
+    if "verified" not in columns:
+        op.add_column(
+            "training_data",
+            sa.Column(
+                "verified",
+                sa.Boolean(),
+                nullable=False,
+            ),
+        )
+
+    if op.f("ix_training_data_id") in indexes:
+        op.drop_index(
+            op.f("ix_training_data_id"),
+            table_name="training_data",
+        )
+
+    if "category" in columns:
+        op.alter_column(
+            "training_data",
+            "category",
+            existing_type=sa.VARCHAR(length=100),
             nullable=False,
-        ),
-    )
+        )
 
-    op.add_column(
-        "training_data",
-        sa.Column(
-            "verified",
-            sa.Boolean(),
-            nullable=False,
-        ),
-    )
+    if "question" in columns:
+        op.alter_column(
+            "training_data",
+            "question",
+            existing_type=sa.String(length=500),
+            type_=sa.TEXT(),
+            existing_nullable=False,
+        )
 
-    op.drop_index(
-        op.f("ix_training_data_id"),
-        table_name="training_data",
-    )
-
-    op.alter_column(
-        "training_data",
-        "category",
-        existing_type=sa.VARCHAR(length=100),
-        nullable=False,
-    )
-
-    op.alter_column(
-        "training_data",
-        "question",
-        existing_type=sa.String(length=500),
-        type_=sa.TEXT(),
-        existing_nullable=False,
-    )
-
-    op.drop_column(
-        "training_data",
-        "answer",
-    )
+    if "answer" in columns:
+        op.drop_column(
+            "training_data",
+            "answer",
+        )

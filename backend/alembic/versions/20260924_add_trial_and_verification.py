@@ -38,6 +38,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     bind = op.get_bind()
     columns = {column["name"] for column in sa.inspect(bind).get_columns("users")}
-    for column in ("trial_ends_at", "trial_started_at", "is_verified"):
+    for column in ("trial_ends_at", "trial_started_at", "avatar_url", "is_verified"):
         if column in columns:
             op.drop_column("users", column)
