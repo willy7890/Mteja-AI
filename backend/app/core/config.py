@@ -80,6 +80,7 @@ class Settings(BaseSettings):
 
     # Meta / Facebook / WhatsApp / Instagram Webhooks
     META_APP_SECRET: str = ""
+    META_GRAPH_API_VERSION: str = "v20.0"
     WHATSAPP_VERIFY_TOKEN: str = ""
     WHATSAPP_ACCESS_TOKEN: str = ""
     WHATSAPP_PHONE_NUMBER_ID: str = ""
