@@ -159,10 +159,16 @@ async def _handle_meta_webhook(
     )
 
     if not customer:
-        return {
-            "ok": True,
-            "message": "Customer not found",
-        }
+        customer = Customer(
+            organization_id=organization_id,
+            name=(
+                normalized.get("sender_name")
+                or f"{provider.capitalize()} customer"
+            ),
+            phone=normalized["from"],
+        )
+        db.add(customer)
+        await db.flush()
 
     message = await message_service.handle_incoming(
         db=db,
@@ -172,11 +178,11 @@ async def _handle_meta_webhook(
         customer_id=customer.id,
     )
 
-    result = await orchestrator.run(
+    result = await handle_inbound_message(
         db=db,
         organization_id=organization_id,
-        conversation_id=str(message.conversation_id),
-        message=normalized["content"],
+        contact_id=str(message.conversation_id),
+        message_text=normalized["content"],
     )
 
     conversation_result = await db.execute(
@@ -192,7 +198,7 @@ async def _handle_meta_webhook(
         not conversation
         or conversation.current_handler != "ai"
         or conversation.status != "open"
-        or result.get("blocked")
+        or result.get("status") == "ESCALATED"
     ):
         return {
             "ok": True,
@@ -203,11 +209,7 @@ async def _handle_meta_webhook(
         db=db,
         organization_id=organization_id,
         conversation_id=message.conversation_id,
-        content=(
-            result.get("response")
-            or result.get("reply")
-            or "Thanks for your message."
-        ),
+        content=result.get("reply") or "Thanks for your message.",
         channel=provider,
         sender_name=result.get(
             "agent",
@@ -219,7 +221,7 @@ async def _handle_meta_webhook(
         "ok": True,
         "message_id": message.id,
         "conversation_id": message.conversation_id,
-        "reply_id": reply.external_id,
+        "reply_id": reply.id,
         "reply_status": reply.status,
     }
 
