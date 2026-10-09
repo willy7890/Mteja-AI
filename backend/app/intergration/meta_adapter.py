@@ -1,10 +1,14 @@
 from datetime import datetime
+import logging
 from typing import Any
+import uuid
 
 import httpx
 
 from app.core.config import settings
 from app.intergration.base_adapter import ChannelAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class MetaAdapter(ChannelAdapter):
@@ -25,6 +29,9 @@ class MetaAdapter(ChannelAdapter):
         if self.channel_name == "whatsapp":
             object_id = kwargs.get("phone_number_id") or settings.WHATSAPP_PHONE_NUMBER_ID
             payload = {"messaging_product": "whatsapp", "to": to, "type": "text", "text": {"body": content}}
+            if settings.WHATSAPP_DRY_RUN:
+                logger.warning("[WHATSAPP DRY RUN] to=%s: %s", to, content)
+                return {"external_id": f"dry-run-{uuid.uuid4().hex[:12]}", "status": "sent", "error": None}
         else:
             object_id = kwargs.get("page_id") or self.page_id
             payload = {"recipient": {"id": to}, "message": {"text": content}}
@@ -35,7 +42,7 @@ class MetaAdapter(ChannelAdapter):
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    f"https://graph.facebook.com/v20.0/{object_id}/messages",
+                    f"https://graph.facebook.com/{settings.META_GRAPH_API_VERSION}/{object_id}/messages",
                     json=payload,
                     headers={"Authorization": f"Bearer {self.access_token}"},
                 )
@@ -57,18 +64,44 @@ class MetaAdapter(ChannelAdapter):
                 value = change.get("value", {})
                 messages = value.get("messages", [])
                 if not messages:
+                    # Delivery/read receipts arrive as "statuses" with no messages
+                    if value.get("statuses"):
+                        return self._empty(payload, event="status")
                     continue
                 message = messages[0]
                 message_type = message.get("type")
-                content = message.get(message_type, {}).get("body", "") if message_type else ""
+                contacts = value.get("contacts", [])
+                profile_name = contacts[0].get("profile", {}).get("name") if contacts else None
                 return {
                     "external_id": str(message.get("id", "")),
                     "from": str(message.get("from", "")),
-                    "content": content or f"[{message_type or 'unsupported'} message]",
-                    "channel_metadata": {"provider": "whatsapp", "type": message_type, "raw": payload},
+                    "sender_name": profile_name or str(message.get("from", "")),
+                    "content": self._whatsapp_content(message) or f"[{message_type or 'unsupported'} message]",
+                    "channel_metadata": {
+                        "provider": "whatsapp",
+                        "event": "message",
+                        "type": message_type,
+                        "phone_number_id": value.get("metadata", {}).get("phone_number_id"),
+                        "raw": payload,
+                    },
                     "timestamp": self._timestamp(message.get("timestamp")),
                 }
         return self._empty(payload)
+
+    @staticmethod
+    def _whatsapp_content(message: dict) -> str:
+        message_type = message.get("type")
+        body = message.get(message_type, {}) if message_type else {}
+        if message_type == "text":
+            return body.get("body", "")
+        if message_type == "interactive":
+            reply = body.get("button_reply") or body.get("list_reply") or {}
+            return reply.get("title", "")
+        if message_type == "button":
+            return body.get("text", "")
+        if message_type in {"image", "video", "document"}:
+            return body.get("caption", "")
+        return ""
 
     def _normalize_messaging(self, payload: dict) -> dict:
         for entry in payload.get("entry", []):
@@ -97,5 +130,5 @@ class MetaAdapter(ChannelAdapter):
             return str(value)
 
     @staticmethod
-    def _empty(payload: dict) -> dict:
-        return {"external_id": "", "from": "", "content": "", "channel_metadata": {"raw": payload}, "timestamp": None}
+    def _empty(payload: dict, event: str = "unsupported") -> dict:
+        return {"external_id": "", "from": "", "content": "", "channel_metadata": {"event": event, "raw": payload}, "timestamp": None}
