@@ -1,10 +1,14 @@
 from datetime import datetime
+import logging
 from typing import Any
+import uuid
 
 import httpx
 
 from app.core.config import settings
 from app.intergration.base_adapter import ChannelAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class MetaAdapter(ChannelAdapter):
@@ -25,6 +29,9 @@ class MetaAdapter(ChannelAdapter):
         if self.channel_name == "whatsapp":
             object_id = kwargs.get("phone_number_id") or settings.WHATSAPP_PHONE_NUMBER_ID
             payload = {"messaging_product": "whatsapp", "to": to, "type": "text", "text": {"body": content}}
+            if settings.WHATSAPP_DRY_RUN:
+                logger.warning("[WHATSAPP DRY RUN] to=%s: %s", to, content)
+                return {"external_id": f"dry-run-{uuid.uuid4().hex[:12]}", "status": "sent", "error": None}
         else:
             object_id = kwargs.get("page_id") or self.page_id
             payload = {"recipient": {"id": to}, "message": {"text": content}}
