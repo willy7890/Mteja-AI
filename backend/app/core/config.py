@@ -84,6 +84,8 @@ class Settings(BaseSettings):
     WHATSAPP_VERIFY_TOKEN: str = ""
     WHATSAPP_ACCESS_TOKEN: str = ""
     WHATSAPP_PHONE_NUMBER_ID: str = ""
+    # When true, outbound WhatsApp replies are logged instead of sent to Meta
+    WHATSAPP_DRY_RUN: bool = False
     FACEBOOK_VERIFY_TOKEN: str = ""
     FACEBOOK_ACCESS_TOKEN: str = ""
     FACEBOOK_PAGE_ID: str = ""
