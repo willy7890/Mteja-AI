@@ -255,3 +255,23 @@ async def test_status_update_is_ignored(client, session_factory, sent_messages, 
     assert sent_messages == []
     async with session_factory() as session:
         assert (await session.execute(select(Message))).scalars().all() == []
+
+
+# ---------------------------------------------------------------
+# Dry-run mode
+# ---------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_dry_run_send_does_not_call_meta(monkeypatch):
+    monkeypatch.setattr(settings, "WHATSAPP_DRY_RUN", True)
+
+    def no_network(*args, **kwargs):
+        raise AssertionError("dry-run must not call the Graph API")
+
+    monkeypatch.setattr("app.intergration.meta_adapter.httpx.AsyncClient", no_network)
+
+    result = await MetaAdapter("whatsapp").send(to=CUSTOMER_PHONE, content="Habari")
+
+    assert result["status"] == "sent"
+    assert result["external_id"].startswith("dry-run-")
+    assert result["error"] is None
